@@ -58,21 +58,16 @@ function recordAttempt(ip: string): void {
  * 注意：這是簡化版，生產環境需要實際整合 reCAPTCHA
  */
 async function verifyRecaptcha(token: string | undefined): Promise<boolean> {
-  // 開發模式：跳過驗證
-  if (process.env.NODE_ENV !== 'production') {
+  // 如果沒有配置 reCAPTCHA 密鑰，跳過驗證（允許註冊）
+  const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY
+  if (!recaptchaSecret) {
+    console.warn('RECAPTCHA_SECRET_KEY not configured, skipping reCAPTCHA verification')
     return true
   }
 
   // 如果沒有提供 token，驗證失敗
   if (!token) {
     return false
-  }
-
-  // 生產模式：實際驗證 reCAPTCHA
-  const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY
-  if (!recaptchaSecret) {
-    console.warn('RECAPTCHA_SECRET_KEY not configured, skipping verification')
-    return true
   }
 
   try {
