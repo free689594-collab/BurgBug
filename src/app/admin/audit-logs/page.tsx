@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import AdminNav from '@/components/admin/AdminNav'
 
 interface AuditLog {
@@ -41,12 +41,12 @@ export default function AuditLogsPage() {
   // 錯誤狀態
   const [error, setError] = useState('')
 
-  // 載入審計日誌
-  const fetchLogs = async (offset: number = 0) => {
+  // 載入審計日誌（使用 useCallback 避免依賴項警告）
+  const fetchLogs = useCallback(async (offset: number = 0) => {
     try {
       setLoading(true)
       setError('')
-      
+
       const token = localStorage.getItem('access_token')
       if (!token) {
         setError('請先登入')
@@ -94,12 +94,12 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [actionFilter, startDate, endDate, pagination.limit])
 
   // 初始載入
   useEffect(() => {
     fetchLogs()
-  }, [actionFilter, startDate, endDate])
+  }, [fetchLogs])
 
   // 處理分頁
   const handlePrevPage = () => {

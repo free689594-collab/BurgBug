@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 
@@ -57,11 +57,7 @@ export default function AdminDebtsPage() {
   // 批量選擇
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  useEffect(() => {
-    fetchRecords()
-  }, [pagination.page, sortBy, sortOrder])
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true)
     try {
       const token = localStorage.getItem('access_token')
@@ -104,7 +100,11 @@ export default function AdminDebtsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, sortBy, sortOrder, search, uploader, residence, status, dateFrom, dateTo, router])
+
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }))

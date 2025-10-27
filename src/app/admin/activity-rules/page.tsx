@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
@@ -16,11 +16,8 @@ export default function ActivityRulesPage() {
   const [formData, setFormData] = useState<Partial<ActivityRule>>({})
   const [showConfirm, setShowConfirm] = useState(false)
 
-  useEffect(() => {
-    fetchRules()
-  }, [])
-
-  const fetchRules = async () => {
+  // 使用 useCallback 包裝 fetchRules，避免依賴項警告
+  const fetchRules = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -46,7 +43,11 @@ export default function ActivityRulesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    fetchRules()
+  }, [fetchRules])
 
   const handleEdit = (rule: ActivityRule) => {
     setEditingRule(rule)

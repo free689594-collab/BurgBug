@@ -329,7 +329,40 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 12. 記錄審計日誌
+    // 12. 建立 member_statistics 記錄（初始化額度和統計資料）
+    const { error: statsError } = await supabaseAdmin
+      .from('member_statistics')
+      .insert({
+        user_id: authData.user.id,
+        likes_received: 0,
+        likes_given: 0,
+        uploads_count: 0,
+        queries_count: 0,
+        activity_points: 0,
+        activity_level: 1,
+        title: '初入江湖',
+        title_color: '#9CA3AF',
+        total_upload_quota_bonus: 0,
+        total_query_quota_bonus: 0,
+        consecutive_login_days: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+
+    if (statsError) {
+      // 如果建立統計資料失敗，刪除已建立的記錄
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      await supabaseAdmin.from('members').delete().eq('user_id', authData.user.id)
+      await supabaseAdmin.from('user_roles').delete().eq('user_id', authData.user.id)
+      recordAttempt(ip)
+      console.error('Failed to create member statistics:', statsError)
+      return NextResponse.json(
+        errorResponse(ErrorCodes.INTERNAL_ERROR, '註冊失敗，請稍後再試'),
+        { status: 500 }
+      )
+    }
+
+    // 14. 記錄審計日誌
     try {
       await supabaseAdmin.rpc('log_audit', {
         p_action: 'REGISTER',
@@ -349,10 +382,10 @@ export async function POST(req: NextRequest) {
       // 不阻塞註冊流程
     }
 
-    // 13. 記錄成功的註冊嘗試（用於節流）
+    // 15. 記錄成功的註冊嘗試（用於節流）
     recordAttempt(ip)
 
-    // 14. 回傳成功響應
+    // 16. 回傳成功響應
     return NextResponse.json(
       successResponse({
         user: {
