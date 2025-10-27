@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotification } from '@/contexts/NotificationContext'
 
@@ -11,6 +11,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rememberAccount, setRememberAccount] = useState(false)
+
+  // 頁面加載時，檢查是否有保存的帳號
+  useEffect(() => {
+    const savedAccount = localStorage.getItem('remembered_account')
+    if (savedAccount) {
+      setAccount(savedAccount)
+      setRememberAccount(true)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,6 +41,13 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data.error?.message || '登入失敗')
         return
+      }
+
+      // 根據用戶選擇，決定是否保存帳號
+      if (rememberAccount) {
+        localStorage.setItem('remembered_account', account)
+      } else {
+        localStorage.removeItem('remembered_account')
       }
 
       // 儲存 token 到 localStorage（前端使用）
@@ -138,6 +155,21 @@ export default function LoginPage() {
                 placeholder="請輸入密碼"
                 minLength={8}
               />
+            </div>
+
+            {/* 記住帳號複選框 */}
+            <div className="flex items-center">
+              <input
+                id="rememberAccount"
+                name="rememberAccount"
+                type="checkbox"
+                checked={rememberAccount}
+                onChange={(e) => setRememberAccount(e.target.checked)}
+                className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
+              />
+              <label htmlFor="rememberAccount" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                記住帳號
+              </label>
             </div>
           </div>
 
