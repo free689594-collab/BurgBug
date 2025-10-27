@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { X } from 'lucide-react'
 
 interface BadgeData {
@@ -38,13 +38,7 @@ export default function BadgeDetailModal({ isOpen, onClose, userId }: BadgeDetai
   const [totalCount, setTotalCount] = useState(0)
   const [unlockedCount, setUnlockedCount] = useState(0)
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      fetchBadges()
-    }
-  }, [isOpen, userId])
-
-  const fetchBadges = async () => {
+  const fetchBadges = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/member/badges/${userId}`)
@@ -61,7 +55,13 @@ export default function BadgeDetailModal({ isOpen, onClose, userId }: BadgeDetai
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchBadges()
+    }
+  }, [isOpen, userId, fetchBadges])
 
   if (!isOpen) return null
 

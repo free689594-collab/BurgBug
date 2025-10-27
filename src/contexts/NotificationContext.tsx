@@ -18,6 +18,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // 生成唯一 ID
   const generateId = () => `notification-${Date.now()}-${Math.random()}`
 
+  // 關閉通知（先定義，避免依賴項警告）
+  const closeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }, [])
+
   // 顯示等級升級通知
   const showLevelUp = useCallback((data: LevelUpData, duration = 5000) => {
     const id = generateId()
@@ -37,7 +42,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         closeNotification(id)
       }, duration)
     }
-  }, [])
+  }, [closeNotification])
 
   // 顯示勳章解鎖通知
   const showBadgeUnlock = useCallback((data: BadgeUnlockData, duration = 5000) => {
@@ -58,12 +63,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         closeNotification(id)
       }, duration)
     }
-  }, [])
-
-  // 關閉通知
-  const closeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
-  }, [])
+  }, [closeNotification])
 
   // 清除所有通知
   const clearAll = useCallback(() => {

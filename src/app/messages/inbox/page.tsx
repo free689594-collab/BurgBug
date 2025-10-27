@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { formatDistanceToNow } from 'date-fns'
@@ -31,11 +31,7 @@ export default function MemberInboxPage() {
   const [replyContent, setReplyContent] = useState('')
   const [replying, setReplying] = useState(false)
 
-  useEffect(() => {
-    fetchMessages()
-  }, [statusFilter])
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('access_token')
@@ -58,7 +54,11 @@ export default function MemberInboxPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
+
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
 
   const handleMarkAsRead = async (messageIds: string[], isRead: boolean) => {
     try {

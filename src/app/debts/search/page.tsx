@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { useNotification } from '@/contexts/NotificationContext'
@@ -72,12 +72,7 @@ export default function DebtSearchPage() {
     'monthly': '月結'
   }
 
-  // 檢查使用者登入狀態和審核狀態
-  useEffect(() => {
-    checkUserStatus()
-  }, [])
-
-  const checkUserStatus = async () => {
+  const checkUserStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -109,7 +104,12 @@ export default function DebtSearchPage() {
       console.error('Failed to check user status:', err)
       router.push('/login')
     }
-  }
+  }, [router])
+
+  // 檢查使用者登入狀態和審核狀態
+  useEffect(() => {
+    checkUserStatus()
+  }, [checkUserStatus])
 
   // 處理查詢
   const handleSearch = async (e: React.FormEvent) => {

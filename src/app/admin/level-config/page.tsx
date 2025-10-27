@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
@@ -19,11 +19,7 @@ export default function LevelConfigPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'save' | 'delete'>('save')
 
-  useEffect(() => {
-    fetchLevels()
-  }, [])
-
-  const fetchLevels = async () => {
+  const fetchLevels = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -49,7 +45,11 @@ export default function LevelConfigPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    fetchLevels()
+  }, [fetchLevels])
 
   const handleEdit = (level: LevelConfig) => {
     setEditingLevel(level)

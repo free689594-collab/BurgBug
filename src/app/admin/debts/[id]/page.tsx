@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 
@@ -76,11 +76,7 @@ export default function AdminDebtDetailPage() {
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState<any>({})
 
-  useEffect(() => {
-    fetchDebtDetail()
-  }, [id])
-
-  const fetchDebtDetail = async () => {
+  const fetchDebtDetail = useCallback(async () => {
     setLoading(true)
     try {
       const token = localStorage.getItem('access_token')
@@ -112,7 +108,11 @@ export default function AdminDebtDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, router])
+
+  useEffect(() => {
+    fetchDebtDetail()
+  }, [fetchDebtDetail])
 
   const handleEdit = () => {
     setEditing(true)

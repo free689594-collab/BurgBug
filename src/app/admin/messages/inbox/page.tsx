@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 import { formatDistanceToNow } from 'date-fns'
@@ -31,11 +31,7 @@ export default function AdminInboxPage() {
   const [replyContent, setReplyContent] = useState('')
   const [replying, setReplying] = useState(false)
 
-  useEffect(() => {
-    fetchMessages()
-  }, [statusFilter])
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('access_token')
@@ -57,7 +53,11 @@ export default function AdminInboxPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
+
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
 
   const handleMarkAsRead = async (messageIds: string[], isRead: boolean) => {
     try {

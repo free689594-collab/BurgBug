@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminNav from '@/components/admin/AdminNav'
 
@@ -51,12 +51,12 @@ export default function MembersPage() {
     ids: string[]
   } | null>(null)
 
-  // 載入會員列表
-  const fetchMembers = async (offset: number = 0) => {
+  // 載入會員列表（使用 useCallback 避免依賴項警告）
+  const fetchMembers = useCallback(async (offset: number = 0) => {
     try {
       setLoading(true)
       setError('')
-      
+
       const token = localStorage.getItem('access_token')
       if (!token) {
         setError('請先登入')
@@ -101,7 +101,7 @@ export default function MembersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, roleFilter, searchQuery, pagination.limit])
 
   // 更新會員狀態
   const updateMemberStatus = async (userId: string, newStatus: string) => {
@@ -135,7 +135,7 @@ export default function MembersPage() {
       setSuccess('更新成功')
       // 重新載入列表
       fetchMembers(pagination.offset)
-      
+
       // 3 秒後清除成功訊息
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
@@ -148,7 +148,7 @@ export default function MembersPage() {
   // 初始載入
   useEffect(() => {
     fetchMembers()
-  }, [statusFilter, roleFilter, searchQuery])
+  }, [fetchMembers])
 
   // 處理搜尋
   const handleSearch = (e: React.FormEvent) => {

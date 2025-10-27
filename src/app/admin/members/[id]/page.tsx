@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
 import { LevelBadge } from '@/components/member/LevelBadge'
@@ -51,11 +51,7 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'debts' | 'requests'>('overview')
 
-  useEffect(() => {
-    fetchMemberDetail()
-  }, [id])
-
-  const fetchMemberDetail = async () => {
+  const fetchMemberDetail = useCallback(async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('access_token')
@@ -78,7 +74,11 @@ export default function MemberDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, router])
+
+  useEffect(() => {
+    fetchMemberDetail()
+  }, [fetchMemberDetail])
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (!confirm(`確定要將會員狀態改為「${newStatus}」嗎？`)) return

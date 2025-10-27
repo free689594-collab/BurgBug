@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import StatCard from '@/components/stats/StatCard'
@@ -74,22 +74,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchData()
-
-    // 監聽使用者資料更新事件
-    const handleUserDataUpdated = () => {
-      fetchData()
-    }
-
-    window.addEventListener('userDataUpdated', handleUserDataUpdated)
-
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdated)
-    }
-  }, [])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -136,7 +121,22 @@ export default function DashboardPage() {
       setError('載入資料失敗')
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    fetchData()
+
+    // 監聽使用者資料更新事件
+    const handleUserDataUpdated = () => {
+      fetchData()
+    }
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdated)
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdated)
+    }
+  }, [fetchData])
 
   if (loading) {
     return (

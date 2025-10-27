@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { LevelBadge } from '@/components/member/LevelBadge'
@@ -15,22 +15,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [profileData, setProfileData] = useState<MemberProfileData | null>(null)
 
-  useEffect(() => {
-    fetchProfile()
-
-    // 監聽使用者資料更新事件
-    const handleUserDataUpdated = () => {
-      fetchProfile()
-    }
-
-    window.addEventListener('userDataUpdated', handleUserDataUpdated)
-
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdated)
-    }
-  }, [])
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -58,7 +43,22 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    fetchProfile()
+
+    // 監聽使用者資料更新事件
+    const handleUserDataUpdated = () => {
+      fetchProfile()
+    }
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdated)
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdated)
+    }
+  }, [fetchProfile])
 
   if (loading) {
     return (

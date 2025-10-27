@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 
@@ -61,19 +61,7 @@ export default function MyDebtorsPage() {
     'monthly': '月結'
   }
 
-  // 檢查使用者登入狀態
-  useEffect(() => {
-    checkUserStatus()
-  }, [])
-
-  // 載入資料
-  useEffect(() => {
-    if (loading === false) {
-      fetchRecords()
-    }
-  }, [currentPage, statusFilter, residenceFilter])
-
-  const checkUserStatus = async () => {
+  const checkUserStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -96,14 +84,13 @@ export default function MyDebtorsPage() {
       }
 
       setLoading(false)
-      fetchRecords()
     } catch (err) {
       console.error('Failed to check user status:', err)
       router.push('/login')
     }
-  }
+  }, [router])
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token')
       if (!token) {
@@ -140,7 +127,19 @@ export default function MyDebtorsPage() {
       console.error('Fetch records error:', err)
       setError('系統錯誤，請稍後再試')
     }
-  }
+  }, [currentPage, statusFilter, residenceFilter, router])
+
+  // 檢查使用者登入狀態
+  useEffect(() => {
+    checkUserStatus()
+  }, [checkUserStatus])
+
+  // 載入資料
+  useEffect(() => {
+    if (loading === false) {
+      fetchRecords()
+    }
+  }, [fetchRecords, loading])
 
   // 更新還款狀態
   const handleUpdateStatus = async (recordId: string, newStatus: string) => {

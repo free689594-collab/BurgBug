@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 
@@ -38,11 +38,7 @@ export default function MessagesPage() {
   })
   const [unreadOnly, setUnreadOnly] = useState(false)
 
-  useEffect(() => {
-    fetchMessages()
-  }, [activeTab, pagination.page, unreadOnly])
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('access_token')
@@ -72,7 +68,11 @@ export default function MessagesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, pagination.page, pagination.limit, unreadOnly])
+
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
 
   const handleDelete = async (messageId: string) => {
     if (!confirm('確定要刪除這則訊息嗎？')) return
