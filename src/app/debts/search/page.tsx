@@ -4,9 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { useNotification } from '@/contexts/NotificationContext'
-import { LevelBadge } from '@/components/member/LevelBadge'
-import { Award } from 'lucide-react'
-import BadgeDetailModal from '@/components/badges/BadgeDetailModal'
 
 interface DebtSearchResult {
   id: string
@@ -57,10 +54,6 @@ export default function DebtSearchPage() {
   const [remainingSearches, setRemainingSearches] = useState<number | null>(null)
   const [userStatus, setUserStatus] = useState<string | null>(null)
   const [likingDebtId, setLikingDebtId] = useState<string | null>(null)
-
-  // 勳章彈窗狀態
-  const [badgeModalOpen, setBadgeModalOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   // 身分證首字母選項（A-Z）
   const firstLetterOptions = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -496,40 +489,6 @@ export default function DebtSearchPage() {
                                 <p className="text-xs text-gray-400 mb-1">業務區域</p>
                                 <p className="text-foreground">{result.uploader.business_region}</p>
                               </div>
-
-                              {/* 等級資訊 */}
-                              {result.uploader.level_info && (
-                                <div className="pt-3 border-t border-dark-200">
-                                  <p className="text-xs text-gray-400 mb-2">等級</p>
-                                  <div className="flex justify-center">
-                                    <LevelBadge
-                                      level={result.uploader.level_info.current_level}
-                                      title={result.uploader.level_info.title}
-                                      titleColor={result.uploader.level_info.title_color}
-                                      size="large"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* 勳章資訊 */}
-                              {result.uploader.badge_count !== undefined && (
-                                <div className="pt-3 border-t border-dark-200">
-                                  <p className="text-xs text-gray-400 mb-2">勳章</p>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedUserId(result.uploader!.user_id)
-                                      setBadgeModalOpen(true)
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-dark-300 hover:bg-dark-200 rounded-lg transition-colors cursor-pointer"
-                                  >
-                                    <Award className="w-4 h-4 text-yellow-400" />
-                                    <span className="text-sm font-semibold text-foreground">
-                                      {result.uploader.badge_count} 個勳章
-                                    </span>
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           ) : (
                             <p className="text-foreground-muted text-sm">無上傳會員資訊</p>
@@ -550,23 +509,11 @@ export default function DebtSearchPage() {
           <ul className="text-xs text-gray-400 space-y-1">
             <li>• 每日查詢次數限制為 20 次</li>
             <li>• 查詢結果中的債務人資訊已自動遮罩，保護隱私</li>
-            <li>• 可查看上傳者的業務資訊、等級和勳章，方便聯繫合作</li>
+            <li>• 可查看上傳者的業務資訊，方便聯繫合作</li>
             <li>• 點擊「給予按讚」可以為上傳者按讚（功能即將推出）</li>
           </ul>
         </div>
       </div>
-
-      {/* 勳章詳情彈窗 */}
-      {selectedUserId && (
-        <BadgeDetailModal
-          isOpen={badgeModalOpen}
-          onClose={() => {
-            setBadgeModalOpen(false)
-            setSelectedUserId(null)
-          }}
-          userId={selectedUserId}
-        />
-      )}
     </MemberLayout>
   )
 }
