@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { useNotification } from '@/contexts/NotificationContext'
+import { LevelBadge } from '@/components/member/LevelBadge'
 
 interface DebtSearchResult {
   id: string
@@ -489,6 +490,21 @@ export default function DebtSearchPage() {
                                 <p className="text-xs text-gray-400 mb-1">業務區域</p>
                                 <p className="text-foreground">{result.uploader.business_region}</p>
                               </div>
+
+                              {/* 等級資訊 */}
+                              {result.uploader.level_info && (
+                                <div className="pt-3 border-t border-dark-200">
+                                  <p className="text-xs text-gray-400 mb-2">等級</p>
+                                  <div className="flex justify-center">
+                                    <LevelBadge
+                                      level={result.uploader.level_info.current_level}
+                                      title={result.uploader.level_info.title}
+                                      titleColor={result.uploader.level_info.title_color}
+                                      size="large"
+                                    />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <p className="text-foreground-muted text-sm">無上傳會員資訊</p>
@@ -509,7 +525,7 @@ export default function DebtSearchPage() {
           <ul className="text-xs text-gray-400 space-y-1">
             <li>• 每日查詢次數限制為 20 次</li>
             <li>• 查詢結果中的債務人資訊已自動遮罩，保護隱私</li>
-            <li>• 可查看上傳者的業務資訊，方便聯繫合作</li>
+            <li>• 可查看上傳者的業務資訊和等級，方便聯繫合作</li>
             <li>• 點擊「給予按讚」可以為上傳者按讚（功能即將推出）</li>
           </ul>
         </div>
