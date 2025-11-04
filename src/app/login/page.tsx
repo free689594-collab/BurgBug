@@ -11,14 +11,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [rememberAccount, setRememberAccount] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
-  // 頁面加載時，檢查是否有保存的帳號
+  // 簡單的加密/解密函數（Base64 編碼，僅用於混淆，不是真正的加密）
+  const encode = (str: string) => {
+    try {
+      return btoa(encodeURIComponent(str))
+    } catch {
+      return str
+    }
+  }
+
+  const decode = (str: string) => {
+    try {
+      return decodeURIComponent(atob(str))
+    } catch {
+      return str
+    }
+  }
+
+  // 頁面加載時，檢查是否有保存的帳號和密碼
   useEffect(() => {
     const savedAccount = localStorage.getItem('remembered_account')
+    const savedPassword = localStorage.getItem('remembered_password')
+
     if (savedAccount) {
-      setAccount(savedAccount)
-      setRememberAccount(true)
+      setAccount(decode(savedAccount))
+      setRememberMe(true)
+    }
+
+    if (savedPassword) {
+      setPassword(decode(savedPassword))
     }
   }, [])
 
@@ -43,11 +66,13 @@ export default function LoginPage() {
         return
       }
 
-      // 根據用戶選擇，決定是否保存帳號
-      if (rememberAccount) {
-        localStorage.setItem('remembered_account', account)
+      // 根據用戶選擇，決定是否保存帳號和密碼
+      if (rememberMe) {
+        localStorage.setItem('remembered_account', encode(account))
+        localStorage.setItem('remembered_password', encode(password))
       } else {
         localStorage.removeItem('remembered_account')
+        localStorage.removeItem('remembered_password')
       }
 
       // 儲存 token 到 localStorage（前端使用）
@@ -157,18 +182,18 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* 記住帳號複選框 */}
+            {/* 記住密碼複選框 */}
             <div className="flex items-center">
               <input
-                id="rememberAccount"
-                name="rememberAccount"
+                id="rememberMe"
+                name="rememberMe"
                 type="checkbox"
-                checked={rememberAccount}
-                onChange={(e) => setRememberAccount(e.target.checked)}
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
               />
-              <label htmlFor="rememberAccount" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
-                記住帳號
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                記住密碼
               </label>
             </div>
           </div>

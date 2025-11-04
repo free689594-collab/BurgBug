@@ -254,7 +254,8 @@ export async function POST(req: NextRequest) {
 
     // 將 secure 與實際連線協定綁定：本地 http 不設 Secure，HTTPS 才設 Secure
     const isSecure = new URL(req.url).protocol === 'https:'
-    const maxAge = Math.max(0, (authData.session.expires_at ?? 0) - Math.floor(Date.now() / 1000)) || 60 * 60 * 2 // 預設 2 小時
+    // 延長 Session 過期時間：7 天（Supabase 最大值，避免自動登出）
+    const maxAge = 60 * 60 * 24 * 7 // 7 天
 
     // 設置 HttpOnly Cookie，僅供伺服器端（含 middleware）讀取
     response.cookies.set('access_token', authData.session.access_token, {
