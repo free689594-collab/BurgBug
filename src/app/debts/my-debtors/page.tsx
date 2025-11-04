@@ -321,7 +321,7 @@ export default function MyDebtorsPage() {
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">全部</option>
-                {statusOptions.map((status) => (
+                {REPAYMENT_STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
