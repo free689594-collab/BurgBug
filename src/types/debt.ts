@@ -4,9 +4,9 @@
 
 /**
  * 還款狀況類型
- * 注意：資料庫中可能還有舊資料（議價結清、代償），前端會自動映射到「結清」
+ * 注意：資料庫中可能還有舊資料（結清、議價結清、代償），前端會自動映射到「結清 / 議價結清 / 代償」
  */
-export type RepaymentStatus = '待觀察' | '正常' | '結清' | '疲勞' | '呆帳'
+export type RepaymentStatus = '待觀察' | '正常' | '結清 / 議價結清 / 代償' | '疲勞' | '呆帳'
 
 /**
  * 債務記錄資料結構
@@ -22,7 +22,7 @@ export interface DebtRecord {
   debt_date: string // ISO 8601 date
   face_value: number
   payment_frequency: 'daily' | 'weekly' | 'monthly'
-  repayment_status: RepaymentStatus | '議價結清' | '代償' // 包含舊資料的可能值
+  repayment_status: RepaymentStatus | '結清' | '議價結清' | '代償' // 包含舊資料的可能值
   note?: string | null
   uploaded_by: string
   created_at: string

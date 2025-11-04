@@ -4,9 +4,14 @@
  */
 
 /**
- * 還款狀況類型
+ * 還款狀況類型（新版 5 個選項）
  */
-export type RepaymentStatus = '待觀察' | '正常' | '結清' | '疲勞' | '呆帳'
+export type RepaymentStatus = '待觀察' | '正常' | '結清 / 議價結清 / 代償' | '疲勞' | '呆帳'
+
+/**
+ * 舊版還款狀況類型（用於向後兼容）
+ */
+export type LegacyRepaymentStatus = '待觀察' | '正常' | '結清' | '議價結清' | '代償' | '疲勞' | '呆帳'
 
 /**
  * 風險等級
@@ -53,8 +58,8 @@ const REPAYMENT_STATUS_CONFIG: Record<RepaymentStatus, RepaymentStatusConfig> = 
     lightBgClass: 'bg-green-100',
     lightTextClass: 'text-green-800'
   },
-  '結清': {
-    label: '結清',
+  '結清 / 議價結清 / 代償': {
+    label: '結清 / 議價結清 / 代償',
     riskLevel: 'settled',
     riskText: '已結清',
     bgClass: 'bg-blue-500/20',
@@ -91,7 +96,7 @@ const REPAYMENT_STATUS_CONFIG: Record<RepaymentStatus, RepaymentStatusConfig> = 
 export const REPAYMENT_STATUS_OPTIONS: RepaymentStatus[] = [
   '待觀察',
   '正常',
-  '結清',
+  '結清 / 議價結清 / 代償',
   '疲勞',
   '呆帳'
 ]
@@ -111,19 +116,23 @@ export function getRepaymentStatusConfig(status: string): RepaymentStatusConfig 
  */
 export function normalizeRepaymentStatus(status: string): RepaymentStatus {
   // 舊資料映射規則：
-  // - '議價結清' → '結清'
-  // - '代償' → '結清'
+  // - '結清' / '議價結清' / '代償' → '結清 / 議價結清 / 代償'
   // - 其他保持不變
   switch (status) {
+    case '結清':
     case '議價結清':
     case '代償':
-      return '結清'
+      return '結清 / 議價結清 / 代償'
     case '待觀察':
+      return '待觀察'
     case '正常':
-    case '結清':
+      return '正常'
     case '疲勞':
+      return '疲勞'
     case '呆帳':
-      return status as RepaymentStatus
+      return '呆帳'
+    case '結清 / 議價結清 / 代償':
+      return '結清 / 議價結清 / 代償'
     default:
       return '待觀察'
   }
@@ -174,7 +183,7 @@ export function getRepaymentStatusLabel(status: string): string {
  */
 export function isSettledStatus(status: string): boolean {
   const normalizedStatus = normalizeRepaymentStatus(status)
-  return normalizedStatus === '結清'
+  return normalizedStatus === '結清 / 議價結清 / 代償'
 }
 
 /**
