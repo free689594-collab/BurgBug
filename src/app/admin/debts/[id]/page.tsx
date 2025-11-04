@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
+import {
+  REPAYMENT_STATUS_OPTIONS,
+  getRepaymentStatusLightClasses,
+  getRepaymentStatusLabel
+} from '@/utils/repaymentStatus'
 
 interface DebtRecord {
   id: string
@@ -434,20 +439,16 @@ export default function AdminDebtDetailPage() {
                   onChange={(e) => setEditData({ ...editData, repayment_status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="正常">正常</option>
-                  <option value="待觀察">待觀察</option>
-                  <option value="延遲">延遲</option>
-                  <option value="呆帳">呆帳</option>
+                  {REPAYMENT_STATUS_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <p className="text-gray-900">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    record.repayment_status === '正常' ? 'bg-green-100 text-green-800' :
-                    record.repayment_status === '待觀察' ? 'bg-yellow-100 text-yellow-800' :
-                    record.repayment_status === '延遲' ? 'bg-orange-100 text-orange-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {record.repayment_status}
+                  <span className={`px-2 py-1 rounded-full text-xs ${getRepaymentStatusLightClasses(record.repayment_status)}`}>
+                    {getRepaymentStatusLabel(record.repayment_status)}
                   </span>
                 </p>
               )}

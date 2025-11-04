@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { useNotification } from '@/contexts/NotificationContext'
 import { LevelBadge } from '@/components/member/LevelBadge'
+import { getRepaymentStatusClasses, getRepaymentStatusLabel } from '@/utils/repaymentStatus'
 
 interface DebtSearchResult {
   id: string
@@ -451,13 +452,8 @@ export default function DebtSearchPage() {
                             </div>
                             <div>
                               <p className="text-xs text-gray-400 mb-1">還款狀況</p>
-                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                                result.repayment_status === '正常' ? 'bg-green-500/20 text-green-400' :
-                                result.repayment_status === '結清' ? 'bg-blue-500/20 text-blue-400' :
-                                result.repayment_status === '呆帳' ? 'bg-red-500/20 text-red-400' :
-                                'bg-yellow-500/20 text-yellow-400'
-                              }`}>
-                                {result.repayment_status}
+                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getRepaymentStatusClasses(result.repayment_status)}`}>
+                                {getRepaymentStatusLabel(result.repayment_status)}
                               </span>
                             </div>
                           </div>

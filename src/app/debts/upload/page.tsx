@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
 import { useNotification } from '@/contexts/NotificationContext'
+import { REPAYMENT_STATUS_OPTIONS } from '@/utils/repaymentStatus'
 
 export default function DebtUploadPage() {
   const router = useRouter()
@@ -39,7 +40,6 @@ export default function DebtUploadPage() {
     { label: '周結', value: 'weekly' },
     { label: '月結', value: 'monthly' }
   ]
-  const repaymentStatusOptions = ['待觀察', '正常', '結清', '議價結清', '代償', '疲勞', '呆帳']
 
   const checkUserStatus = useCallback(async () => {
     try {
@@ -467,7 +467,7 @@ export default function DebtUploadPage() {
                   disabled={loading}
                   required
                 >
-                  {repaymentStatusOptions.map((option) => (
+                  {REPAYMENT_STATUS_OPTIONS.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>

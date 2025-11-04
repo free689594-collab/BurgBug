@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/layouts/AdminLayout'
+import { REPAYMENT_STATUS_OPTIONS } from '@/utils/repaymentStatus'
 
 interface DebtRecord {
   id: string
@@ -262,10 +263,11 @@ export default function AdminDebtsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="">全部</option>
-                <option value="正常">正常</option>
-                <option value="待觀察">待觀察</option>
-                <option value="延遲">延遲</option>
-                <option value="呆帳">呆帳</option>
+                {REPAYMENT_STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
 

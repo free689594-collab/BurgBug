@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
+import {
+  REPAYMENT_STATUS_OPTIONS,
+  getRepaymentStatusClasses,
+  getRepaymentStatusLabel,
+  normalizeRepaymentStatus
+} from '@/utils/repaymentStatus'
 
 interface DebtRecord {
   id: string
@@ -53,7 +59,6 @@ export default function MyDebtorsPage() {
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null)
 
   // 選項列表
-  const statusOptions = ['待觀察', '正常', '結清', '議價結清', '代償', '疲勞', '呆帳']
   const residenceOptions = ['北北基宜', '桃竹苗', '中彰投', '雲嘉南', '高屏澎', '花東']
   const paymentFrequencyMap: Record<string, string> = {
     'daily': '日結',
@@ -268,21 +273,20 @@ export default function MyDebtorsPage() {
             <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 md:col-span-2">
               <p className="text-foreground-muted text-sm mb-4">按還款狀況統計</p>
               <div className="grid grid-cols-2 gap-3">
-                {Object.entries(stats.by_status).map(([status, data]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <span className={`text-sm px-2 py-1 rounded ${
-                      status === '正常' ? 'bg-green-500/20 text-green-400' :
-                      status === '結清' ? 'bg-blue-500/20 text-blue-400' :
-                      status === '呆帳' ? 'bg-red-500/20 text-red-400' :
-                      'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {status}
-                    </span>
-                    <span className="text-foreground text-sm font-medium">
-                      {data.count} 筆
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(stats.by_status).map(([status, data]) => {
+                  const normalizedStatus = normalizeRepaymentStatus(status)
+                  const displayLabel = getRepaymentStatusLabel(status)
+                  return (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className={`text-sm px-2 py-1 rounded ${getRepaymentStatusClasses(status)}`}>
+                        {displayLabel}
+                      </span>
+                      <span className="text-foreground text-sm font-medium">
+                        {data.count} 筆
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -459,17 +463,12 @@ export default function MyDebtorsPage() {
                       {/* 還款狀況 */}
                       <td className="px-4 py-4">
                         <select
-                          value={record.repayment_status}
+                          value={normalizeRepaymentStatus(record.repayment_status)}
                           onChange={(e) => handleUpdateStatus(record.id, e.target.value)}
                           disabled={updatingId === record.id}
-                          className={`px-3 py-1 rounded-full text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            record.repayment_status === '正常' ? 'bg-green-500/20 text-green-400' :
-                            record.repayment_status === '結清' ? 'bg-blue-500/20 text-blue-400' :
-                            record.repayment_status === '呆帳' ? 'bg-red-500/20 text-red-400' :
-                            'bg-yellow-500/20 text-yellow-400'
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${getRepaymentStatusClasses(record.repayment_status)}`}
                         >
-                          {statusOptions.map((status) => (
+                          {REPAYMENT_STATUS_OPTIONS.map((status) => (
                             <option key={status} value={status}>
                               {status}
                             </option>

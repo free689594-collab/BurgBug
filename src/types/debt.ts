@@ -3,6 +3,12 @@
  */
 
 /**
+ * 還款狀況類型
+ * 注意：資料庫中可能還有舊資料（議價結清、代償），前端會自動映射到「結清」
+ */
+export type RepaymentStatus = '待觀察' | '正常' | '結清' | '疲勞' | '呆帳'
+
+/**
  * 債務記錄資料結構
  */
 export interface DebtRecord {
@@ -16,7 +22,7 @@ export interface DebtRecord {
   debt_date: string // ISO 8601 date
   face_value: number
   payment_frequency: 'daily' | 'weekly' | 'monthly'
-  repayment_status: '待觀察' | '正常' | '結清' | '議價結清' | '代償' | '疲勞' | '呆帳'
+  repayment_status: RepaymentStatus | '議價結清' | '代償' // 包含舊資料的可能值
   note?: string | null
   uploaded_by: string
   created_at: string
@@ -38,12 +44,12 @@ export interface DebtUploadRequest {
   gender: '男' | '女' | '其他'
   profession?: string
   residence: string
-  
+
   // 債務資料
   debt_date: string // YYYY-MM-DD
   face_value: number
   payment_frequency: 'daily' | 'weekly' | 'monthly'
-  repayment_status: '待觀察' | '正常' | '結清' | '議價結清' | '代償' | '疲勞' | '呆帳'
+  repayment_status: RepaymentStatus
   note?: string
 }
 
@@ -88,7 +94,7 @@ export interface DebtSearchResult {
  * 債務狀態更新請求
  */
 export interface DebtStatusUpdateRequest {
-  repayment_status: '待觀察' | '正常' | '結清' | '議價結清' | '代償' | '疲勞' | '呆帳'
+  repayment_status: RepaymentStatus
   note?: string
 }
 
