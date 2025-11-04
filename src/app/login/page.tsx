@@ -11,7 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberAccount, setRememberAccount] = useState(false)
+  const [rememberPassword, setRememberPassword] = useState(false)
 
   // 簡單的加密/解密函數（Base64 編碼，僅用於混淆，不是真正的加密）
   const encode = (str: string) => {
@@ -37,11 +38,12 @@ export default function LoginPage() {
 
     if (savedAccount) {
       setAccount(decode(savedAccount))
-      setRememberMe(true)
+      setRememberAccount(true)
     }
 
     if (savedPassword) {
       setPassword(decode(savedPassword))
+      setRememberPassword(true)
     }
   }, [])
 
@@ -66,12 +68,17 @@ export default function LoginPage() {
         return
       }
 
-      // 根據用戶選擇，決定是否保存帳號和密碼
-      if (rememberMe) {
+      // 根據用戶選擇，決定是否保存帳號
+      if (rememberAccount) {
         localStorage.setItem('remembered_account', encode(account))
-        localStorage.setItem('remembered_password', encode(password))
       } else {
         localStorage.removeItem('remembered_account')
+      }
+
+      // 根據用戶選擇，決定是否保存密碼
+      if (rememberPassword) {
+        localStorage.setItem('remembered_password', encode(password))
+      } else {
         localStorage.removeItem('remembered_password')
       }
 
@@ -182,19 +189,35 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* 記住密碼複選框 */}
-            <div className="flex items-center">
-              <input
-                id="rememberMe"
-                name="rememberMe"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
-                記住密碼
-              </label>
+            {/* 記住帳號和密碼複選框 */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center">
+                <input
+                  id="rememberAccount"
+                  name="rememberAccount"
+                  type="checkbox"
+                  checked={rememberAccount}
+                  onChange={(e) => setRememberAccount(e.target.checked)}
+                  className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
+                />
+                <label htmlFor="rememberAccount" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                  記住帳號
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="rememberPassword"
+                  name="rememberPassword"
+                  type="checkbox"
+                  checked={rememberPassword}
+                  onChange={(e) => setRememberPassword(e.target.checked)}
+                  className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
+                />
+                <label htmlFor="rememberPassword" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                  記住密碼
+                </label>
+              </div>
             </div>
           </div>
 
