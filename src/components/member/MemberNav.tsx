@@ -317,7 +317,7 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
               )}
 
               {/* 管理後台按鈕（僅管理員顯示） */}
-              {member?.role === 'admin' && (
+              {(member?.role === 'admin' || member?.role === 'super_admin') && (
                 <button
                   onClick={() => router.push('/admin/dashboard')}
                   className="px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-md transition-colors border border-primary/30"
@@ -482,7 +482,7 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
               </div>
 
               {/* 手機版管理後台按鈕（僅管理員顯示） */}
-              {member?.role === 'admin' && (
+              {(member?.role === 'admin' || member?.role === 'super_admin') && (
                 <div className="px-2 mb-2">
                   <button
                     onClick={() => {
