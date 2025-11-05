@@ -13,13 +13,20 @@ interface RegionStatsCardProps {
 }
 
 export default function RegionStatsCard({ stats }: RegionStatsCardProps) {
+  // 防禦性檢查：確保所有數值都是有效的數字
+  const safeTotal = stats?.total ?? 0
+  const safeNorth = stats?.north ?? 0
+  const safeCentral = stats?.central ?? 0
+  const safeSouth = stats?.south ?? 0
+  const safeEast = stats?.east ?? 0
+
   return (
     <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
       {/* 全台筆數 - 大標題 */}
       <div className="text-center mb-8">
         <p className="text-foreground-muted text-sm mb-2">全台債務筆數</p>
         <p className="text-5xl font-bold text-foreground">
-          {stats.total.toLocaleString()}
+          {safeTotal.toLocaleString()}
         </p>
       </div>
 
@@ -29,7 +36,7 @@ export default function RegionStatsCard({ stats }: RegionStatsCardProps) {
         <div className="text-center p-4 bg-dark-200 rounded-lg hover:bg-dark-100 transition-colors">
           <p className="text-foreground-muted text-xs mb-2">北部</p>
           <p className="text-2xl md:text-3xl font-semibold text-blue-400">
-            {stats.north.toLocaleString()}
+            {safeNorth.toLocaleString()}
           </p>
           <p className="text-foreground-muted text-xs mt-1">
             北北基宜 + 桃竹苗
@@ -40,7 +47,7 @@ export default function RegionStatsCard({ stats }: RegionStatsCardProps) {
         <div className="text-center p-4 bg-dark-200 rounded-lg hover:bg-dark-100 transition-colors">
           <p className="text-foreground-muted text-xs mb-2">中部</p>
           <p className="text-2xl md:text-3xl font-semibold text-green-400">
-            {stats.central.toLocaleString()}
+            {safeCentral.toLocaleString()}
           </p>
           <p className="text-foreground-muted text-xs mt-1">
             中彰投
@@ -51,7 +58,7 @@ export default function RegionStatsCard({ stats }: RegionStatsCardProps) {
         <div className="text-center p-4 bg-dark-200 rounded-lg hover:bg-dark-100 transition-colors">
           <p className="text-foreground-muted text-xs mb-2">南部</p>
           <p className="text-2xl md:text-3xl font-semibold text-yellow-400">
-            {stats.south.toLocaleString()}
+            {safeSouth.toLocaleString()}
           </p>
           <p className="text-foreground-muted text-xs mt-1">
             雲嘉南 + 高屏澎
@@ -62,7 +69,7 @@ export default function RegionStatsCard({ stats }: RegionStatsCardProps) {
         <div className="text-center p-4 bg-dark-200 rounded-lg hover:bg-dark-100 transition-colors">
           <p className="text-foreground-muted text-xs mb-2">東部</p>
           <p className="text-2xl md:text-3xl font-semibold text-orange-400">
-            {stats.east.toLocaleString()}
+            {safeEast.toLocaleString()}
           </p>
           <p className="text-foreground-muted text-xs mt-1">
             花東
