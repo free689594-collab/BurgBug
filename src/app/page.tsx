@@ -15,14 +15,40 @@ export default function Home() {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // 檢查使用者是否已登入
+    // 檢查使用者是否已登入，並根據角色跳轉
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/test-cookie')
         const data = await response.json()
 
-        // 如果有 access_token，表示已登入，跳轉到 dashboard
+        // 如果有 access_token，表示已登入
         if (data.hasAccessToken) {
+          // 取得使用者資料以確認角色
+          const token = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('access_token='))
+            ?.split('=')[1]
+
+          if (token) {
+            const userRes = await fetch('/api/auth/me', {
+              headers: { 'Authorization': `Bearer ${token}` },
+            })
+
+            if (userRes.ok) {
+              const userData = await userRes.json()
+              const userRole = userData.data?.role
+
+              // 根據角色跳轉到對應的 dashboard
+              if (userRole === 'admin') {
+                router.replace('/admin/dashboard')
+              } else {
+                router.replace('/dashboard')
+              }
+              return
+            }
+          }
+
+          // 如果無法取得使用者資料，預設跳轉到會員 dashboard
           router.replace('/dashboard')
           return
         }

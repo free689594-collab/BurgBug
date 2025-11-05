@@ -315,7 +315,17 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
                   </div>
                 </>
               )}
-              
+
+              {/* 管理後台按鈕（僅管理員顯示） */}
+              {member?.role === 'admin' && (
+                <button
+                  onClick={() => router.push('/admin/dashboard')}
+                  className="px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-md transition-colors border border-primary/30"
+                >
+                  ⚙️ 管理後台
+                </button>
+              )}
+
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-foreground-muted hover:text-foreground bg-dark-200 hover:bg-dark-100 rounded-md transition-colors"
@@ -470,6 +480,21 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
                   </div>
                 </div>
               </div>
+
+              {/* 手機版管理後台按鈕（僅管理員顯示） */}
+              {member?.role === 'admin' && (
+                <div className="px-2 mb-2">
+                  <button
+                    onClick={() => {
+                      router.push('/admin/dashboard')
+                      setIsMenuOpen(false)
+                    }}
+                    className="w-full text-left px-3 py-2 text-base font-medium text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-md transition-colors border border-primary/30"
+                  >
+                    ⚙️ 管理後台
+                  </button>
+                </div>
+              )}
 
               {/* 手機版登出按鈕 */}
               <div className="px-2">
