@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [rememberAccount, setRememberAccount] = useState(false)
   const [rememberPassword, setRememberPassword] = useState(false)
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false)
 
   // 簡單的加密/解密函數（Base64 編碼，僅用於混淆，不是真正的加密）
   const encode = (str: string) => {
@@ -58,7 +59,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ account, password }),
+        body: JSON.stringify({ account, password, keepLoggedIn }),
       })
 
       const data = await response.json()
@@ -189,33 +190,49 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* 記住帳號和密碼複選框 */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center">
-                <input
-                  id="rememberAccount"
-                  name="rememberAccount"
-                  type="checkbox"
-                  checked={rememberAccount}
-                  onChange={(e) => setRememberAccount(e.target.checked)}
-                  className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
-                />
-                <label htmlFor="rememberAccount" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
-                  記住帳號
-                </label>
+            {/* 記住帳號、密碼和保持登入複選框 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center">
+                  <input
+                    id="rememberAccount"
+                    name="rememberAccount"
+                    type="checkbox"
+                    checked={rememberAccount}
+                    onChange={(e) => setRememberAccount(e.target.checked)}
+                    className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <label htmlFor="rememberAccount" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                    記住帳號
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    id="rememberPassword"
+                    name="rememberPassword"
+                    type="checkbox"
+                    checked={rememberPassword}
+                    onChange={(e) => setRememberPassword(e.target.checked)}
+                    className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <label htmlFor="rememberPassword" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                    記住密碼
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center">
                 <input
-                  id="rememberPassword"
-                  name="rememberPassword"
+                  id="keepLoggedIn"
+                  name="keepLoggedIn"
                   type="checkbox"
-                  checked={rememberPassword}
-                  onChange={(e) => setRememberPassword(e.target.checked)}
+                  checked={keepLoggedIn}
+                  onChange={(e) => setKeepLoggedIn(e.target.checked)}
                   className="h-4 w-4 rounded border-dark-100 bg-dark-200 text-primary focus:ring-primary cursor-pointer"
                 />
-                <label htmlFor="rememberPassword" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
-                  記住密碼
+                <label htmlFor="keepLoggedIn" className="ml-2 block text-sm text-foreground-muted cursor-pointer hover:text-foreground transition-colors">
+                  保持登入（7 天內關閉瀏覽器不登出）
                 </label>
               </div>
             </div>

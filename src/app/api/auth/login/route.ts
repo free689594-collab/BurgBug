@@ -39,7 +39,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { account, password } = body
+    const { account, password, keepLoggedIn = false } = body
 
     // 1. 驗證輸入格式
     if (!account || !password) {
@@ -254,24 +254,27 @@ export async function POST(req: NextRequest) {
 
     // 將 secure 與實際連線協定綁定：本地 http 不設 Secure，HTTPS 才設 Secure
     const isSecure = new URL(req.url).protocol === 'https:'
-    // 延長 Session 過期時間：7 天（Supabase 最大值，避免自動登出）
-    const maxAge = 60 * 60 * 24 * 7 // 7 天
+
+    // 根據「保持登入」選項決定 Cookie 設定
+    // 如果勾選「保持登入」：設定 7 天的 maxAge 和 expires（持久化 Cookie）
+    // 如果沒勾選：不設定 maxAge 和 expires（session cookie，關閉瀏覽器就清除）
+    const cookieOptions: any = {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      path: '/',
+    }
+
+    if (keepLoggedIn) {
+      const maxAge = 60 * 60 * 24 * 7 // 7 天
+      const expires = new Date(Date.now() + maxAge * 1000)
+      cookieOptions.maxAge = maxAge
+      cookieOptions.expires = expires
+    }
 
     // 設置 HttpOnly Cookie，僅供伺服器端（含 middleware）讀取
-    response.cookies.set('access_token', authData.session.access_token, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      path: '/',
-      maxAge,
-    })
-    response.cookies.set('refresh_token', authData.session.refresh_token, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 天
-    })
+    response.cookies.set('access_token', authData.session.access_token, cookieOptions)
+    response.cookies.set('refresh_token', authData.session.refresh_token, cookieOptions)
 
     return response
 
