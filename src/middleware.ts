@@ -17,10 +17,12 @@ const PUBLIC_PATHS = [
   '/account-suspended',
   '/session-expired',
   '/session-conflict',
+  '/test-cookie',   // Cookie 測試頁面
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
   '/api/auth/resolve-conflict',
+  '/api/test-cookie',
   '/api/health',
   '/api/debug',
 ]
