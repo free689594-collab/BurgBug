@@ -250,7 +250,7 @@ export async function GET(req: NextRequest) {
     // 計算統計資料
     const totalRecords = allDebtorRecords?.length || 0
     const uniqueUploaders = new Set(allDebtorRecords?.map(r => r.uploaded_by) || []).size
-    const fatigueCount = allDebtorRecords?.filter(r => r.repayment_status === 'fatigued').length || 0
+    const fatigueCount = allDebtorRecords?.filter(r => r.repayment_status === '疲勞').length || 0
     const fatiguePercentage = totalRecords > 0 ? Math.round((fatigueCount / totalRecords) * 100) : 0
     const latestUpdate = allDebtorRecords?.reduce((latest, record) => {
       const recordDate = new Date(record.updated_at)
