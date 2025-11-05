@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import MemberLayout from '@/components/layouts/MemberLayout'
+import NotesTimelineModal from '@/components/debts/NotesTimelineModal'
+import PrivateFieldsModal from '@/components/debts/PrivateFieldsModal'
 import {
   REPAYMENT_STATUS_OPTIONS,
   getRepaymentStatusClasses,
@@ -27,6 +29,11 @@ interface DebtRecord {
   updated_at?: string | null
   debtor_id_first_letter: string
   debtor_id_last5: string
+  // 私密欄位
+  settled_amount?: number | null
+  recovered_amount?: number | null
+  bad_debt_amount?: number | null
+  internal_rating?: number | null
 }
 
 interface Stats {
@@ -57,6 +64,11 @@ export default function MyDebtorsPage() {
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null)
+
+  // Modal 狀態
+  const [notesModalOpen, setNotesModalOpen] = useState(false)
+  const [privateFieldsModalOpen, setPrivateFieldsModalOpen] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState<DebtRecord | null>(null)
 
   // 選項列表
   const residenceOptions = ['北北基宜', '桃竹苗', '中彰投', '雲嘉南', '高屏澎', '花東']
@@ -416,6 +428,12 @@ export default function MyDebtorsPage() {
                       還款狀況
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        私密欄位
+                        <span className="text-yellow-400" title="僅您可見">🔒</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                       操作
                     </th>
                   </tr>
@@ -482,17 +500,57 @@ export default function MyDebtorsPage() {
                         )}
                       </td>
 
+                      {/* 私密欄位 */}
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          {record.internal_rating && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-foreground-muted">評價:</span>
+                              <span className="text-yellow-400">
+                                {'★'.repeat(record.internal_rating)}{'☆'.repeat(5 - record.internal_rating)}
+                              </span>
+                            </div>
+                          )}
+                          {(record.settled_amount || record.recovered_amount || record.bad_debt_amount) && (
+                            <div className="text-xs text-foreground-muted">
+                              {record.settled_amount && <div>結清: {formatCurrency(record.settled_amount)}</div>}
+                              {record.recovered_amount && <div>收回: {formatCurrency(record.recovered_amount)}</div>}
+                              {record.bad_debt_amount && <div>呆帳: {formatCurrency(record.bad_debt_amount)}</div>}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              setSelectedRecord(record)
+                              setPrivateFieldsModalOpen(true)
+                            }}
+                            className="text-blue-400 hover:text-blue-300 text-xs"
+                          >
+                            {record.settled_amount || record.recovered_amount || record.bad_debt_amount || record.internal_rating ? '編輯' : '新增'}
+                          </button>
+                        </div>
+                      </td>
+
                       {/* 操作 */}
                       <td className="px-4 py-4">
-                        <button
-                          onClick={() => {
-                            // 顯示詳細資訊（可以用 modal 或導向詳情頁）
-                            alert(`債務人：${record.debtor_name}\n身分證：${record.debtor_id_full}\n電話：${record.debtor_phone || '未提供'}\n備註：${record.note || '無'}`)
-                          }}
-                          className="text-blue-400 hover:text-blue-300 text-sm"
-                        >
-                          查看詳情
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedRecord(record)
+                              setNotesModalOpen(true)
+                            }}
+                            className="text-blue-400 hover:text-blue-300 text-sm whitespace-nowrap"
+                          >
+                            📝 備註紀錄
+                          </button>
+                          <button
+                            onClick={() => {
+                              alert(`債務人：${record.debtor_name}\n身分證：${record.debtor_id_full}\n電話：${record.debtor_phone || '未提供'}\n備註：${record.note || '無'}`)
+                            }}
+                            className="text-gray-400 hover:text-gray-300 text-sm whitespace-nowrap"
+                          >
+                            查看詳情
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -534,10 +592,47 @@ export default function MyDebtorsPage() {
             <li>• 此頁面顯示您上傳的所有債務記錄（完整資訊，不遮罩）</li>
             <li>• 可以直接在列表中更新還款狀況，系統會自動儲存</li>
             <li>• 使用篩選功能快速找到特定條件的債務記錄</li>
-            <li>• 點擊「查看詳情」可查看完整的債務人資訊和備註</li>
+            <li>• 點擊「📝 備註紀錄」可查看和新增該債務人的備註時間軸</li>
+            <li>• 🔒 私密欄位（結清金額、已收回金額、呆帳金額、內部評價）僅您可見，不會同步給其他會員</li>
             <li>• 每頁顯示 20 筆記錄，使用分頁功能瀏覽更多資料</li>
           </ul>
         </div>
+
+        {/* 備註時間軸 Modal */}
+        {selectedRecord && (
+          <NotesTimelineModal
+            debtRecordId={selectedRecord.id}
+            debtorName={selectedRecord.debtor_name}
+            isOpen={notesModalOpen}
+            onClose={() => {
+              setNotesModalOpen(false)
+              setSelectedRecord(null)
+            }}
+          />
+        )}
+
+        {/* 私密欄位編輯 Modal */}
+        {selectedRecord && (
+          <PrivateFieldsModal
+            debtRecordId={selectedRecord.id}
+            debtorName={selectedRecord.debtor_name}
+            initialData={{
+              settled_amount: selectedRecord.settled_amount,
+              recovered_amount: selectedRecord.recovered_amount,
+              bad_debt_amount: selectedRecord.bad_debt_amount,
+              internal_rating: selectedRecord.internal_rating
+            }}
+            isOpen={privateFieldsModalOpen}
+            onClose={() => {
+              setPrivateFieldsModalOpen(false)
+              setSelectedRecord(null)
+            }}
+            onSuccess={() => {
+              // 重新載入資料
+              fetchRecords()
+            }}
+          />
+        )}
       </div>
     </MemberLayout>
   )

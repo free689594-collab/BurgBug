@@ -31,6 +31,11 @@ export interface DebtRecord {
   debtor_id_last5: string
   admin_edited_by?: string | null
   admin_edit_reason?: string | null
+  // 私密欄位（僅上傳者可見）
+  settled_amount?: number | null // 結清金額
+  recovered_amount?: number | null // 已收回金額
+  bad_debt_amount?: number | null // 呆帳金額
+  internal_rating?: number | null // 內部評價（1-5星）
 }
 
 /**
@@ -113,5 +118,34 @@ export interface MyDebtorsStats {
     region: string
     count: number
   }[]
+}
+
+/**
+ * 債務記錄備註（時間軸）
+ */
+export interface DebtRecordNote {
+  id: string
+  debt_record_id: string
+  user_id: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * 新增備註請求
+ */
+export interface CreateNoteRequest {
+  content: string
+}
+
+/**
+ * 更新私密欄位請求
+ */
+export interface UpdatePrivateFieldsRequest {
+  settled_amount?: number | null
+  recovered_amount?: number | null
+  bad_debt_amount?: number | null
+  internal_rating?: number | null
 }
 
