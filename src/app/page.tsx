@@ -1,23 +1,44 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 /**
  * 根目錄首頁
- * - 所有使用者（無論是否登入）都顯示歡迎首頁
- * - 不會自動重定向，使用者可以自由選擇要登入或註冊
+ * - 如果使用者已登入，自動跳轉到 dashboard
+ * - 如果使用者未登入，顯示歡迎首頁
  */
 export default function Home() {
+  const router = useRouter()
   const [isReady, setIsReady] = useState(false)
+  const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // 標記頁面已準備好（避免 SSR/CSR 不一致）
-    setIsReady(true)
-  }, [])
+    // 檢查使用者是否已登入
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/test-cookie')
+        const data = await response.json()
 
-  // 載入中狀態（避免 hydration 錯誤）
-  if (!isReady) {
+        // 如果有 access_token，表示已登入，跳轉到 dashboard
+        if (data.hasAccessToken) {
+          router.replace('/dashboard')
+          return
+        }
+      } catch (error) {
+        console.error('檢查登入狀態失敗:', error)
+      } finally {
+        setIsChecking(false)
+        setIsReady(true)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  // 載入中狀態（檢查登入狀態或避免 hydration 錯誤）
+  if (!isReady || isChecking) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background">
         <div className="text-center">
