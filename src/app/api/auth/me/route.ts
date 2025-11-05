@@ -5,16 +5,24 @@ import { successResponse, errorResponse, ErrorCodes } from '@/lib/api/response'
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. 從 Authorization header 取得 token
+    // 1. 從 Authorization header 或 Cookie 取得 token
+    let token: string | undefined
+
+    // 優先從 Authorization header 取得
     const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.replace('Bearer ', '')
+    } else {
+      // 如果沒有 Authorization header，從 Cookie 取得
+      token = req.cookies.get('access_token')?.value
+    }
+
+    if (!token) {
       return NextResponse.json(
         errorResponse(ErrorCodes.UNAUTHORIZED, '未提供認證令牌'),
         { status: 401 }
       )
     }
-
-    const token = authHeader.replace('Bearer ', '')
 
     // 2. 驗證 token 並取得使用者
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
