@@ -7,6 +7,18 @@ import { useNotification } from '@/contexts/NotificationContext'
 import { LevelBadge } from '@/components/member/LevelBadge'
 import { getRepaymentStatusClasses, getRepaymentStatusLabel } from '@/utils/repaymentStatus'
 
+interface DebtNotesSummary {
+  content: string
+  created_at: string
+}
+
+interface DebtorStatistics {
+  total_records: number
+  unique_uploaders: number
+  fatigue_percentage: number
+  latest_update: string | null
+}
+
 interface DebtSearchResult {
   id: string
   debtor_name: string
@@ -25,6 +37,7 @@ interface DebtSearchResult {
   debtor_id_last5: string
   likes_count: number
   user_has_liked: boolean
+  recent_notes?: DebtNotesSummary[]
   uploader?: {
     user_id: string
     nickname: string
@@ -52,6 +65,7 @@ export default function DebtSearchPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searchResults, setSearchResults] = useState<DebtSearchResult[]>([])
+  const [debtorStats, setDebtorStats] = useState<DebtorStatistics | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [remainingSearches, setRemainingSearches] = useState<number | null>(null)
   const [userStatus, setUserStatus] = useState<string | null>(null)
@@ -154,6 +168,7 @@ export default function DebtSearchPage() {
 
       // 查詢成功
       setSearchResults(data.data.results || [])
+      setDebtorStats(data.data.debtor_stats || null)
       setRemainingSearches(data.data.remaining_searches)
       setHasSearched(true)
 
@@ -348,11 +363,49 @@ export default function DebtSearchPage() {
         {/* 查詢結果 */}
         {hasSearched && (
           <div className="space-y-4">
-            {/* 結果標題 */}
-            <div className="flex items-center justify-between">
+            {/* 結果標題和統計資訊 */}
+            <div className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">
-                查詢結果 {searchResults.length > 0 && `(${searchResults.length} 筆)`}
+                查詢結果
               </h2>
+
+              {/* 債務人行為統計 */}
+              {debtorStats && debtorStats.total_records > 0 && (
+                <div className="bg-dark-300 border border-dark-200 rounded-lg p-4">
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">已登錄債務會員數：</span>
+                      <span className="text-lg font-semibold text-blue-400">
+                        {debtorStats.unique_uploaders} 筆
+                      </span>
+                    </div>
+
+                    {debtorStats.fatigue_percentage > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">曾標記「疲勞」的比例：</span>
+                        <span className={`text-lg font-semibold ${
+                          debtorStats.fatigue_percentage >= 50
+                            ? 'text-red-400'
+                            : debtorStats.fatigue_percentage >= 30
+                            ? 'text-yellow-400'
+                            : 'text-green-400'
+                        }`}>
+                          {debtorStats.fatigue_percentage}%
+                        </span>
+                      </div>
+                    )}
+
+                    {debtorStats.latest_update && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">最近更新時間：</span>
+                        <span className="text-sm text-foreground">
+                          {formatDate(debtorStats.latest_update)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 無結果提示 */}
@@ -461,6 +514,44 @@ export default function DebtSearchPage() {
                             <div className="mt-4">
                               <p className="text-xs text-gray-400 mb-1">備註</p>
                               <p className="text-foreground text-sm">{result.note}</p>
+                            </div>
+                          )}
+
+                          {/* 備註紀錄摘要 */}
+                          {result.recent_notes && result.recent_notes.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-dark-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <p className="text-xs text-gray-400">💬 備註紀錄摘要</p>
+                                <span className="text-xs text-blue-400">
+                                  （最新 {result.recent_notes.length} 筆更新）
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {result.recent_notes.map((note, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-dark-400 border border-dark-200 rounded p-2"
+                                  >
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(note.created_at).toLocaleDateString('zh-TW', {
+                                          year: 'numeric',
+                                          month: '2-digit',
+                                          day: '2-digit',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-foreground-muted line-clamp-2">
+                                      {note.content}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2 italic">
+                                ℹ️ 此債務人最近有更新紀錄，請參考上方備註時間軸
+                              </p>
                             </div>
                           )}
                         </div>

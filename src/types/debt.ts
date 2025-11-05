@@ -68,6 +68,24 @@ export interface DebtSearchRequest {
 }
 
 /**
+ * 備註摘要
+ */
+export interface DebtNotesSummary {
+  content: string
+  created_at: string
+}
+
+/**
+ * 債務人行為統計
+ */
+export interface DebtorStatistics {
+  total_records: number // 總記錄數
+  unique_uploaders: number // 登錄債務會員數
+  fatigue_percentage: number // 疲勞比例（%）
+  latest_update: string | null // 最近更新時間
+}
+
+/**
  * 債務查詢結果（遮罩版）
  */
 export interface DebtSearchResult {
@@ -87,11 +105,23 @@ export interface DebtSearchResult {
   created_at: string
   debtor_id_first_letter: string
   debtor_id_last5: string
+  likes_count: number
+  user_has_liked: boolean
+  // 備註摘要（最新 5 筆）
+  recent_notes?: DebtNotesSummary[]
   // 上傳者資訊
   uploader?: {
+    user_id: string
     nickname: string
     business_type: string
     business_region: string
+    level_info?: {
+      current_level: number
+      title: string
+      title_color: string
+      activity_points: number
+    } | null
+    badge_count?: number
   }
 }
 

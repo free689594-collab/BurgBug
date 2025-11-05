@@ -214,16 +214,68 @@ export async function GET(req: NextRequest) {
 
     const userLikedSet = new Set(userLikes?.map(l => l.debt_record_id) || [])
 
-    // 9. 合併上傳者資訊和按讚資訊
+    // 9. 查詢備註摘要（最新 5 筆）
+    const { data: recentNotes } = await supabaseAdmin
+      .from('debt_record_notes')
+      .select('debt_record_id, content, created_at')
+      .in('debt_record_id', debtRecordIds)
+      .order('created_at', { ascending: false })
+      .limit(debtRecordIds.length * 5) // 每筆記錄最多 5 筆備註
+
+    // 將備註按 debt_record_id 分組，每組最多 5 筆
+    const notesMap = recentNotes?.reduce((acc, note) => {
+      if (!acc[note.debt_record_id]) {
+        acc[note.debt_record_id] = []
+      }
+      if (acc[note.debt_record_id].length < 5) {
+        acc[note.debt_record_id].push({
+          content: note.content,
+          created_at: note.created_at
+        })
+      }
+      return acc
+    }, {} as Record<string, Array<{ content: string; created_at: string }>>) || {}
+
+    // 10. 查詢同一債務人的行為統計
+    // 根據 debtor_id_first_letter 和 debtor_id_last5 分組統計
+    const debtorKey = `${firstLetter}${last5}`
+
+    // 統計同一債務人的所有記錄
+    const { data: allDebtorRecords } = await supabaseAdmin
+      .from('debt_records')
+      .select('id, repayment_status, updated_at, uploaded_by')
+      .eq('debtor_id_first_letter', firstLetter)
+      .eq('debtor_id_last5', last5)
+
+    // 計算統計資料
+    const totalRecords = allDebtorRecords?.length || 0
+    const uniqueUploaders = new Set(allDebtorRecords?.map(r => r.uploaded_by) || []).size
+    const fatigueCount = allDebtorRecords?.filter(r => r.repayment_status === 'fatigued').length || 0
+    const fatiguePercentage = totalRecords > 0 ? Math.round((fatigueCount / totalRecords) * 100) : 0
+    const latestUpdate = allDebtorRecords?.reduce((latest, record) => {
+      const recordDate = new Date(record.updated_at)
+      return recordDate > latest ? recordDate : latest
+    }, new Date(0))
+
+    const debtorStats = {
+      total_records: totalRecords,
+      unique_uploaders: uniqueUploaders,
+      fatigue_percentage: fatiguePercentage,
+      latest_update: latestUpdate?.toISOString() || null
+    }
+
+    // 11. 合併上傳者資訊、按讚資訊、備註摘要和行為統計
     const resultsWithUploaders = debtRecords?.map(record => {
       const uploader = uploaders?.find(u => u.user_id === record.uploaded_by)
       const stats = uploaderStats?.find(s => s.user_id === record.uploaded_by)
       const levelConfig = levelConfigs?.find(l => l.level === stats?.activity_level)
+      const recentNotesList = notesMap[record.id] || []
 
       return {
         ...record,
         likes_count: record.likes_count || 0,
         user_has_liked: userLikedSet.has(record.id),
+        recent_notes: recentNotesList,
         uploader: uploader ? {
           ...uploader,
           level_info: stats && levelConfig ? {
@@ -237,7 +289,7 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // 10. 記錄審計日誌
+    // 12. 記錄審計日誌
     try {
       await supabaseAdmin.rpc('log_audit', {
         p_action: 'DEBT_SEARCH',
@@ -256,7 +308,7 @@ export async function GET(req: NextRequest) {
       // 不阻塞主流程
     }
 
-    // 11. 新增活躍度點數（優化：直接呼叫資料庫函數）
+    // 13. 新增活躍度點數（優化：直接呼叫資料庫函數）
     let activityResult = null
     const hasResults = resultsWithUploaders && resultsWithUploaders.length > 0
 
@@ -284,12 +336,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 12. 返回查詢結果
+    // 14. 返回查詢結果
     return NextResponse.json(
       successResponse(
         {
           results: resultsWithUploaders || [],
           total_count: resultsWithUploaders?.length || 0,
+          debtor_stats: debtorStats, // 新增：債務人行為統計
           search_params: {
             first_letter: firstLetter,
             last5: last5,
