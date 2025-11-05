@@ -39,7 +39,8 @@ export default function Home() {
               const userRole = userData.data?.role
 
               // 根據角色跳轉到對應的 dashboard
-              if (userRole === 'admin') {
+              // 管理員角色包含 'admin' 和 'super_admin'
+              if (userRole === 'admin' || userRole === 'super_admin') {
                 router.replace('/admin/dashboard')
               } else {
                 router.replace('/dashboard')
