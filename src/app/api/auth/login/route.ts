@@ -256,25 +256,42 @@ export async function POST(req: NextRequest) {
     const isSecure = new URL(req.url).protocol === 'https:'
 
     // 根據「保持登入」選項決定 Cookie 設定
-    // 如果勾選「保持登入」：設定 7 天的 maxAge 和 expires（持久化 Cookie）
-    // 如果沒勾選：不設定 maxAge 和 expires（session cookie，關閉瀏覽器就清除）
-    const cookieOptions: any = {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      path: '/',
-    }
-
     if (keepLoggedIn) {
-      const maxAge = 60 * 60 * 24 * 7 // 7 天
+      // 勾選「保持登入」：設定 7 天的持久化 Cookie
+      const maxAge = 60 * 60 * 24 * 7 // 7 天（秒）
       const expires = new Date(Date.now() + maxAge * 1000)
-      cookieOptions.maxAge = maxAge
-      cookieOptions.expires = expires
-    }
 
-    // 設置 HttpOnly Cookie，僅供伺服器端（含 middleware）讀取
-    response.cookies.set('access_token', authData.session.access_token, cookieOptions)
-    response.cookies.set('refresh_token', authData.session.refresh_token, cookieOptions)
+      response.cookies.set('access_token', authData.session.access_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge,
+        expires,
+      })
+      response.cookies.set('refresh_token', authData.session.refresh_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge,
+        expires,
+      })
+    } else {
+      // 沒勾選「保持登入」：不設定 maxAge 和 expires（session cookie）
+      response.cookies.set('access_token', authData.session.access_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        path: '/',
+      })
+      response.cookies.set('refresh_token', authData.session.refresh_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        path: '/',
+      })
+    }
 
     return response
 
