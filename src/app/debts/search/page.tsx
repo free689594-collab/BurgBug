@@ -15,7 +15,13 @@ interface DebtNotesSummary {
 interface DebtorStatistics {
   total_records: number
   unique_uploaders: number
-  fatigue_percentage: number
+  status_distribution: {
+    '待觀察': number
+    '正常': number
+    '結清': number
+    '疲勞': number
+    '呆帳': number
+  }
   latest_update: string | null
 }
 
@@ -372,37 +378,82 @@ export default function DebtSearchPage() {
               {/* 債務人行為統計 */}
               {debtorStats && debtorStats.total_records > 0 && (
                 <div className="bg-dark-300 border border-dark-200 rounded-lg p-4">
-                  <div className="flex items-center gap-6 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">已登錄債務會員數：</span>
-                      <span className="text-lg font-semibold text-blue-400">
-                        {debtorStats.unique_uploaders} 筆
-                      </span>
+                  <div className="space-y-4">
+                    {/* 基本統計 */}
+                    <div className="flex items-center gap-6 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">已登錄債務會員數：</span>
+                        <span className="text-lg font-semibold text-blue-400">
+                          {debtorStats.unique_uploaders} 筆
+                        </span>
+                      </div>
+
+                      {debtorStats.latest_update && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-400">最近更新時間：</span>
+                          <span className="text-sm text-foreground">
+                            {formatDate(debtorStats.latest_update)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {debtorStats.fatigue_percentage > 0 && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-400">曾標記「疲勞」的比例：</span>
-                        <span className={`text-lg font-semibold ${
-                          debtorStats.fatigue_percentage >= 50
-                            ? 'text-red-400'
-                            : debtorStats.fatigue_percentage >= 30
-                            ? 'text-yellow-400'
-                            : 'text-green-400'
-                        }`}>
-                          {debtorStats.fatigue_percentage}%
-                        </span>
-                      </div>
-                    )}
+                    {/* 還款狀況分布 */}
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-400 font-medium">還款狀況分布：</div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {debtorStats.status_distribution['待觀察'] > 0 && (
+                          <div className="flex items-center gap-1.5 bg-dark-400 px-3 py-1.5 rounded-md">
+                            <span className="text-xs text-gray-400">待觀察</span>
+                            <span className="text-sm font-semibold text-gray-300">
+                              {debtorStats.status_distribution['待觀察']}%
+                            </span>
+                          </div>
+                        )}
 
-                    {debtorStats.latest_update && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-400">最近更新時間：</span>
-                        <span className="text-sm text-foreground">
-                          {formatDate(debtorStats.latest_update)}
-                        </span>
+                        {debtorStats.status_distribution['正常'] > 0 && (
+                          <div className="flex items-center gap-1.5 bg-dark-400 px-3 py-1.5 rounded-md">
+                            <span className="text-xs text-gray-400">正常</span>
+                            <span className="text-sm font-semibold text-green-400">
+                              {debtorStats.status_distribution['正常']}%
+                            </span>
+                          </div>
+                        )}
+
+                        {debtorStats.status_distribution['結清'] > 0 && (
+                          <div className="flex items-center gap-1.5 bg-dark-400 px-3 py-1.5 rounded-md">
+                            <span className="text-xs text-gray-400">結清</span>
+                            <span className="text-sm font-semibold text-blue-400">
+                              {debtorStats.status_distribution['結清']}%
+                            </span>
+                          </div>
+                        )}
+
+                        {debtorStats.status_distribution['疲勞'] > 0 && (
+                          <div className="flex items-center gap-1.5 bg-dark-400 px-3 py-1.5 rounded-md">
+                            <span className="text-xs text-gray-400">疲勞</span>
+                            <span className={`text-sm font-semibold ${
+                              debtorStats.status_distribution['疲勞'] >= 50
+                                ? 'text-red-400'
+                                : debtorStats.status_distribution['疲勞'] >= 30
+                                ? 'text-yellow-400'
+                                : 'text-orange-400'
+                            }`}>
+                              {debtorStats.status_distribution['疲勞']}%
+                            </span>
+                          </div>
+                        )}
+
+                        {debtorStats.status_distribution['呆帳'] > 0 && (
+                          <div className="flex items-center gap-1.5 bg-dark-400 px-3 py-1.5 rounded-md">
+                            <span className="text-xs text-gray-400">呆帳</span>
+                            <span className="text-sm font-semibold text-red-500">
+                              {debtorStats.status_distribution['呆帳']}%
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}

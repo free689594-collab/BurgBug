@@ -250,8 +250,40 @@ export async function GET(req: NextRequest) {
     // 計算統計資料
     const totalRecords = allDebtorRecords?.length || 0
     const uniqueUploaders = new Set(allDebtorRecords?.map(r => r.uploaded_by) || []).size
-    const fatigueCount = allDebtorRecords?.filter(r => r.repayment_status === '疲勞').length || 0
-    const fatiguePercentage = totalRecords > 0 ? Math.round((fatigueCount / totalRecords) * 100) : 0
+
+    // 計算各種還款狀況的數量和比例
+    const statusCounts = {
+      '待觀察': 0,
+      '正常': 0,
+      '結清': 0, // 包含「結清」、「議價結清」、「代償」、「結清 / 議價結清 / 代償」
+      '疲勞': 0,
+      '呆帳': 0
+    }
+
+    allDebtorRecords?.forEach(record => {
+      const status = record.repayment_status
+      if (status === '待觀察') {
+        statusCounts['待觀察']++
+      } else if (status === '正常') {
+        statusCounts['正常']++
+      } else if (status === '結清' || status === '議價結清' || status === '代償' || status === '結清 / 議價結清 / 代償') {
+        statusCounts['結清']++
+      } else if (status === '疲勞') {
+        statusCounts['疲勞']++
+      } else if (status === '呆帳') {
+        statusCounts['呆帳']++
+      }
+    })
+
+    // 計算百分比
+    const statusPercentages = {
+      '待觀察': totalRecords > 0 ? Math.round((statusCounts['待觀察'] / totalRecords) * 100) : 0,
+      '正常': totalRecords > 0 ? Math.round((statusCounts['正常'] / totalRecords) * 100) : 0,
+      '結清': totalRecords > 0 ? Math.round((statusCounts['結清'] / totalRecords) * 100) : 0,
+      '疲勞': totalRecords > 0 ? Math.round((statusCounts['疲勞'] / totalRecords) * 100) : 0,
+      '呆帳': totalRecords > 0 ? Math.round((statusCounts['呆帳'] / totalRecords) * 100) : 0
+    }
+
     const latestUpdate = allDebtorRecords?.reduce((latest, record) => {
       const recordDate = new Date(record.updated_at)
       return recordDate > latest ? recordDate : latest
@@ -260,7 +292,7 @@ export async function GET(req: NextRequest) {
     const debtorStats = {
       total_records: totalRecords,
       unique_uploaders: uniqueUploaders,
-      fatigue_percentage: fatiguePercentage,
+      status_distribution: statusPercentages, // 還款狀況分布
       latest_update: latestUpdate?.toISOString() || null
     }
 

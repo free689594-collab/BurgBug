@@ -81,7 +81,13 @@ export interface DebtNotesSummary {
 export interface DebtorStatistics {
   total_records: number // 總記錄數
   unique_uploaders: number // 登錄債務會員數
-  fatigue_percentage: number // 疲勞比例（%）
+  status_distribution: { // 還款狀況分布（%）
+    '待觀察': number
+    '正常': number
+    '結清': number
+    '疲勞': number
+    '呆帳': number
+  }
   latest_update: string | null // 最近更新時間
 }
 
