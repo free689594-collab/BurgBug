@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
     // 6. 計算統計資訊
     const { data: statsData } = await supabaseAdmin
       .from('debt_records')
-      .select('repayment_status, face_value, residence')
+      .select('repayment_status, face_value, residence, settled_amount, recovered_amount, bad_debt_amount')
       .eq('uploaded_by', user.id)
 
     const stats = {
@@ -143,7 +143,58 @@ export async function GET(req: NextRequest) {
       stats.by_region[record.residence]++
     })
 
-    // 7. 返回結果
+    // 7. 計算私密欄位統計（只統計有填寫私密欄位的債務人）
+    const recordsWithPrivateFields = statsData?.filter(record =>
+      record.settled_amount !== null ||
+      record.recovered_amount !== null ||
+      record.bad_debt_amount !== null
+    ) || []
+
+    const privateStats = {
+      // 總計
+      total_count: recordsWithPrivateFields.length,
+      total_face_value: recordsWithPrivateFields.reduce((sum, record) => sum + (record.face_value || 0), 0),
+      total_settled: recordsWithPrivateFields.reduce((sum, record) => sum + (record.settled_amount || 0), 0),
+      total_recovered: recordsWithPrivateFields.reduce((sum, record) => sum + (record.recovered_amount || 0), 0),
+      total_bad_debt: recordsWithPrivateFields.reduce((sum, record) => sum + (record.bad_debt_amount || 0), 0),
+      recovery_rate: 0,
+
+      // 按還款狀況分類
+      by_status: {} as Record<string, {
+        count: number
+        face_value: number
+        settled_amount: number
+        recovered_amount: number
+        bad_debt_amount: number
+      }>
+    }
+
+    // 計算收回率
+    if (privateStats.total_face_value > 0) {
+      privateStats.recovery_rate = Math.round((privateStats.total_recovered / privateStats.total_face_value) * 100)
+    }
+
+    // 按還款狀況分類統計私密欄位
+    recordsWithPrivateFields.forEach(record => {
+      const status = record.repayment_status
+      if (!privateStats.by_status[status]) {
+        privateStats.by_status[status] = {
+          count: 0,
+          face_value: 0,
+          settled_amount: 0,
+          recovered_amount: 0,
+          bad_debt_amount: 0
+        }
+      }
+
+      privateStats.by_status[status].count++
+      privateStats.by_status[status].face_value += record.face_value || 0
+      privateStats.by_status[status].settled_amount += record.settled_amount || 0
+      privateStats.by_status[status].recovered_amount += record.recovered_amount || 0
+      privateStats.by_status[status].bad_debt_amount += record.bad_debt_amount || 0
+    })
+
+    // 8. 返回結果
     return NextResponse.json(
       successResponse(
         {
@@ -155,6 +206,7 @@ export async function GET(req: NextRequest) {
             total_pages: Math.ceil((count || 0) / limit)
           },
           stats,
+          private_stats: privateStats,
           filters: {
             status: status || null,
             residence: residence || null

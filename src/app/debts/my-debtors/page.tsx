@@ -43,16 +43,34 @@ interface Stats {
   by_region: Record<string, number>
 }
 
+interface PrivateStats {
+  total_count: number
+  total_face_value: number
+  total_settled: number
+  total_recovered: number
+  total_bad_debt: number
+  recovery_rate: number
+  by_status: Record<string, {
+    count: number
+    face_value: number
+    settled_amount: number
+    recovered_amount: number
+    bad_debt_amount: number
+  }>
+}
+
 export default function MyDebtorsPage() {
   const router = useRouter()
   
   // 資料狀態
   const [records, setRecords] = useState<DebtRecord[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
-  
+  const [privateStats, setPrivateStats] = useState<PrivateStats | null>(null)
+
   // 篩選條件
   const [statusFilter, setStatusFilter] = useState('')
   const [residenceFilter, setResidenceFilter] = useState('')
+  const [privateFieldFilter, setPrivateFieldFilter] = useState('') // 'all' | 'filled' | 'empty'
   
   // 分頁
   const [currentPage, setCurrentPage] = useState(1)
@@ -138,6 +156,7 @@ export default function MyDebtorsPage() {
 
       setRecords(data.data.records || [])
       setStats(data.data.stats || null)
+      setPrivateStats(data.data.private_stats || null)
       setTotalPages(data.data.pagination.total_pages || 1)
       setError('')
     } catch (err) {
@@ -224,6 +243,25 @@ export default function MyDebtorsPage() {
     })
   }
 
+  // 前端篩選：私密欄位狀態
+  const filteredRecords = records.filter(record => {
+    if (!privateFieldFilter) return true
+
+    const hasPrivateFields =
+      record.settled_amount !== null ||
+      record.recovered_amount !== null ||
+      record.bad_debt_amount !== null ||
+      record.internal_rating !== null
+
+    if (privateFieldFilter === 'filled') {
+      return hasPrivateFields
+    } else if (privateFieldFilter === 'empty') {
+      return !hasPrivateFields
+    }
+
+    return true
+  })
+
   if (loading) {
     return (
       <MemberLayout>
@@ -252,7 +290,143 @@ export default function MyDebtorsPage() {
           </div>
         )}
 
-        {/* 統計資訊 */}
+        {/* 私密統計儀表板 */}
+        {privateStats && privateStats.total_count > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <span>🔒</span>
+                <span>私密統計儀表板</span>
+                <span className="text-sm font-normal text-foreground-muted">
+                  （已填寫私密欄位：{privateStats.total_count} 筆）
+                </span>
+              </h2>
+            </div>
+
+            {/* 總計統計卡片 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+              {/* 總票面金額 */}
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-blue-300 font-medium">總票面金額</p>
+                  <span className="text-2xl">💰</span>
+                </div>
+                <p className="text-2xl font-bold text-blue-400">
+                  {formatCurrency(privateStats.total_face_value)}
+                </p>
+              </div>
+
+              {/* 總結清金額 */}
+              <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-green-300 font-medium">總結清金額</p>
+                  <span className="text-2xl">✅</span>
+                </div>
+                <p className="text-2xl font-bold text-green-400">
+                  {formatCurrency(privateStats.total_settled)}
+                </p>
+              </div>
+
+              {/* 總收回金額 */}
+              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 border border-emerald-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-emerald-300 font-medium">總收回金額</p>
+                  <span className="text-2xl">💵</span>
+                </div>
+                <p className="text-2xl font-bold text-emerald-400">
+                  {formatCurrency(privateStats.total_recovered)}
+                </p>
+              </div>
+
+              {/* 總呆帳金額 */}
+              <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 border border-red-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-red-300 font-medium">總呆帳金額</p>
+                  <span className="text-2xl">❌</span>
+                </div>
+                <p className="text-2xl font-bold text-red-400">
+                  {formatCurrency(privateStats.total_bad_debt)}
+                </p>
+              </div>
+
+              {/* 收回率 */}
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-purple-300 font-medium">收回率</p>
+                  <span className="text-2xl">📈</span>
+                </div>
+                <p className="text-2xl font-bold text-purple-400">
+                  {privateStats.recovery_rate}%
+                </p>
+                <div className="mt-2 w-full bg-dark-400 rounded-full h-2">
+                  <div
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(privateStats.recovery_rate, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 按還款狀況分類統計 */}
+            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
+              <h3 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
+                <span>📊</span>
+                <span>按還款狀況分類統計（私密欄位）</span>
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(privateStats.by_status)
+                  .sort((a, b) => {
+                    // 排序：結清 > 正常 > 疲勞 > 呆帳 > 待觀察
+                    const order = ['結清', '議價結清', '代償', '結清 / 議價結清 / 代償', '正常', '疲勞', '呆帳', '待觀察']
+                    return order.indexOf(a[0]) - order.indexOf(b[0])
+                  })
+                  .map(([status, data]) => {
+                    const displayLabel = getRepaymentStatusLabel(status)
+                    return (
+                      <div key={status} className="bg-dark-400 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRepaymentStatusClasses(status)}`}>
+                              {displayLabel}
+                            </span>
+                            <span className="text-sm text-gray-400">
+                              {data.count} 筆
+                            </span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-400">票面：</span>
+                            <span className="text-blue-400 font-medium">{formatCurrency(data.face_value)}</span>
+                          </div>
+                          {data.settled_amount > 0 && (
+                            <div>
+                              <span className="text-gray-400">結清：</span>
+                              <span className="text-green-400 font-medium">{formatCurrency(data.settled_amount)}</span>
+                            </div>
+                          )}
+                          {data.recovered_amount > 0 && (
+                            <div>
+                              <span className="text-gray-400">收回：</span>
+                              <span className="text-emerald-400 font-medium">{formatCurrency(data.recovered_amount)}</span>
+                            </div>
+                          )}
+                          {data.bad_debt_amount > 0 && (
+                            <div>
+                              <span className="text-gray-400">呆帳：</span>
+                              <span className="text-red-400 font-medium">{formatCurrency(data.bad_debt_amount)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 基本統計資訊 */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* 總筆數 */}
@@ -319,10 +493,18 @@ export default function MyDebtorsPage() {
 
         {/* 篩選條件 */}
         <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-300">🔍 篩選條件</h3>
+            {(statusFilter || residenceFilter || privateFieldFilter) && (
+              <span className="text-xs text-blue-400">
+                已套用 {[statusFilter, residenceFilter, privateFieldFilter].filter(Boolean).length} 個篩選條件
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                還款狀況篩選
+                還款狀況
               </label>
               <select
                 value={statusFilter}
@@ -343,7 +525,7 @@ export default function MyDebtorsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                居住地篩選
+                居住地
               </label>
               <select
                 value={residenceFilter}
@@ -362,11 +544,31 @@ export default function MyDebtorsPage() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1">
+                <span>私密欄位狀態</span>
+                <span className="text-yellow-400" title="篩選是否已填寫私密欄位">🔒</span>
+              </label>
+              <select
+                value={privateFieldFilter}
+                onChange={(e) => {
+                  setPrivateFieldFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">全部</option>
+                <option value="filled">已填寫</option>
+                <option value="empty">未填寫</option>
+              </select>
+            </div>
+
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setStatusFilter('')
                   setResidenceFilter('')
+                  setPrivateFieldFilter('')
                   setCurrentPage(1)
                 }}
                 className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
@@ -381,13 +583,26 @@ export default function MyDebtorsPage() {
         <div className="bg-dark-300 border border-dark-200 rounded-lg overflow-hidden">
           {/* 表格標題 */}
           <div className="bg-dark-400 px-6 py-4 border-b border-dark-200">
-            <h2 className="text-lg font-semibold text-foreground">
-              債務記錄列表 {records.length > 0 && `(第 ${currentPage} 頁，共 ${records.length} 筆)`}
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                債務記錄列表
+                {filteredRecords.length > 0 && (
+                  <span className="text-sm font-normal text-foreground-muted ml-2">
+                    （顯示 {filteredRecords.length} 筆
+                    {filteredRecords.length !== records.length && ` / 共 ${records.length} 筆`}）
+                  </span>
+                )}
+              </h2>
+              {privateFieldFilter && (
+                <span className="text-xs px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">
+                  🔒 {privateFieldFilter === 'filled' ? '已填寫私密欄位' : '未填寫私密欄位'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* 無資料提示 */}
-          {records.length === 0 && (
+          {filteredRecords.length === 0 && records.length === 0 && (
             <div className="p-12 text-center">
               <div className="text-6xl mb-4">📋</div>
               <p className="text-foreground-muted text-lg">尚無債務記錄</p>
@@ -403,8 +618,30 @@ export default function MyDebtorsPage() {
             </div>
           )}
 
+          {/* 篩選後無資料 */}
+          {filteredRecords.length === 0 && records.length > 0 && (
+            <div className="p-12 text-center">
+              <div className="text-6xl mb-4">🔍</div>
+              <p className="text-foreground-muted text-lg">找不到符合條件的記錄</p>
+              <p className="text-foreground-muted text-sm mt-2">
+                請調整篩選條件後再試
+              </p>
+              <button
+                onClick={() => {
+                  setStatusFilter('')
+                  setResidenceFilter('')
+                  setPrivateFieldFilter('')
+                  setCurrentPage(1)
+                }}
+                className="mt-4 px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              >
+                清除所有篩選
+              </button>
+            </div>
+          )}
+
           {/* 表格內容 */}
-          {records.length > 0 && (
+          {filteredRecords.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-dark-400 border-b border-dark-200">
@@ -439,7 +676,7 @@ export default function MyDebtorsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-dark-200">
-                  {records.map((record) => (
+                  {filteredRecords.map((record) => (
                     <tr key={record.id} className="hover:bg-dark-400 transition-colors">
                       {/* 債務人資訊 */}
                       <td className="px-4 py-4">
@@ -593,7 +830,9 @@ export default function MyDebtorsPage() {
             <li>• 可以直接在列表中更新還款狀況，系統會自動儲存</li>
             <li>• 使用篩選功能快速找到特定條件的債務記錄</li>
             <li>• 點擊「📝 備註紀錄」可查看和新增該債務人的備註時間軸</li>
-            <li>• 🔒 私密欄位（結清金額、已收回金額、呆帳金額、內部評價）僅您可見，不會同步給其他會員</li>
+            <li>• 🔒 <strong>私密欄位</strong>（結清金額、已收回金額、呆帳金額、內部評價）僅您可見，不會同步給其他會員</li>
+            <li>• 💡 <strong>建議填寫私密欄位</strong>：填寫後可在「私密統計儀表板」查看詳細的收回率和分類統計</li>
+            <li>• 📊 私密統計儀表板只統計已填寫私密欄位的債務人，幫助您更好地管理債務</li>
             <li>• 每頁顯示 20 筆記錄，使用分頁功能瀏覽更多資料</li>
           </ul>
         </div>
