@@ -276,7 +276,7 @@ export default function MyDebtorsPage() {
     <MemberLayout>
       <div className="max-w-7xl mx-auto">
         {/* 頁面標題 */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">我的債務人管理</h1>
           <p className="text-foreground-muted">
             管理您上傳的所有債務記錄，查看統計資訊
@@ -289,6 +289,101 @@ export default function MyDebtorsPage() {
             <p className="text-red-400">{error}</p>
           </div>
         )}
+
+        {/* 總筆數 - 簡單顯示 */}
+        {stats && (
+          <div className="mb-6 flex items-center gap-2 text-foreground-muted">
+            <span className="text-2xl">📋</span>
+            <span className="text-sm">總筆數：</span>
+            <span className="text-lg font-bold text-foreground">{stats.total_count}</span>
+            <span className="text-sm">筆</span>
+          </div>
+        )}
+
+        {/* 篩選條件 */}
+        <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-300">🔍 篩選條件</h3>
+            {(statusFilter || residenceFilter || privateFieldFilter) && (
+              <span className="text-xs text-blue-400">
+                已套用 {[statusFilter, residenceFilter, privateFieldFilter].filter(Boolean).length} 個篩選條件
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                還款狀況
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">全部</option>
+                {REPAYMENT_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                居住地
+              </label>
+              <select
+                value={residenceFilter}
+                onChange={(e) => {
+                  setResidenceFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">全部</option>
+                {RESIDENCE_OPTIONS.map((residence) => (
+                  <option key={residence} value={residence}>
+                    {residence}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1">
+                <span>私密欄位狀態</span>
+                <span className="text-xs" title="篩選是否已填寫私密欄位">🔒</span>
+              </label>
+              <select
+                value={privateFieldFilter || ''}
+                onChange={(e) => {
+                  setPrivateFieldFilter(e.target.value as 'all' | 'filled' | 'empty' | null)
+                  setCurrentPage(1)
+                }}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">全部</option>
+                <option value="filled">已填寫</option>
+                <option value="empty">未填寫</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setStatusFilter('')
+                  setResidenceFilter('')
+                  setPrivateFieldFilter(null)
+                  setCurrentPage(1)
+                }}
+                className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+              >
+                清除篩選
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* 私密統計儀表板 */}
         {privateStats && privateStats.total_count > 0 && (
@@ -425,125 +520,6 @@ export default function MyDebtorsPage() {
             </div>
           </div>
         )}
-
-        {/* 基本統計資訊 */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* 總筆數 */}
-            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-foreground-muted text-sm">總筆數</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">
-                    {stats.total_count}
-                  </p>
-                </div>
-                <div className="text-4xl">📋</div>
-              </div>
-            </div>
-
-            {/* 按居住地統計 */}
-            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
-              <p className="text-foreground-muted text-sm mb-4">按居住地統計</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {Object.entries(stats.by_region).map(([region, count]) => (
-                  <div key={region} className="flex items-center justify-between bg-dark-400 rounded px-3 py-2">
-                    <span className="text-foreground text-sm">{region}</span>
-                    <span className="text-blue-400 text-sm font-medium">{count} 筆</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 篩選條件 */}
-        <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-300">🔍 篩選條件</h3>
-            {(statusFilter || residenceFilter || privateFieldFilter) && (
-              <span className="text-xs text-blue-400">
-                已套用 {[statusFilter, residenceFilter, privateFieldFilter].filter(Boolean).length} 個篩選條件
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                還款狀況
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">全部</option>
-                {REPAYMENT_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                居住地
-              </label>
-              <select
-                value={residenceFilter}
-                onChange={(e) => {
-                  setResidenceFilter(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">全部</option>
-                {residenceOptions.map((residence) => (
-                  <option key={residence} value={residence}>
-                    {residence}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1">
-                <span>私密欄位狀態</span>
-                <span className="text-yellow-400" title="篩選是否已填寫私密欄位">🔒</span>
-              </label>
-              <select
-                value={privateFieldFilter}
-                onChange={(e) => {
-                  setPrivateFieldFilter(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">全部</option>
-                <option value="filled">已填寫</option>
-                <option value="empty">未填寫</option>
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setStatusFilter('')
-                  setResidenceFilter('')
-                  setPrivateFieldFilter('')
-                  setCurrentPage(1)
-                }}
-                className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-              >
-                清除篩選
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* 債務記錄列表 */}
         <div className="bg-dark-300 border border-dark-200 rounded-lg overflow-hidden">
