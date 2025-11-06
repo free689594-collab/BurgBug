@@ -428,7 +428,7 @@ export default function MyDebtorsPage() {
 
         {/* 基本統計資訊 */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* 總筆數 */}
             <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
               <div className="flex items-center justify-between">
@@ -442,42 +442,8 @@ export default function MyDebtorsPage() {
               </div>
             </div>
 
-            {/* 總票面金額 */}
-            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-foreground-muted text-sm">總票面金額</p>
-                  <p className="text-2xl font-bold text-green-400 mt-2">
-                    {formatCurrency(stats.total_face_value)}
-                  </p>
-                </div>
-                <div className="text-4xl">💰</div>
-              </div>
-            </div>
-
-            {/* 按還款狀況統計 */}
-            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 md:col-span-2">
-              <p className="text-foreground-muted text-sm mb-4">按還款狀況統計</p>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(stats.by_status).map(([status, data]) => {
-                  const normalizedStatus = normalizeRepaymentStatus(status)
-                  const displayLabel = getRepaymentStatusLabel(status)
-                  return (
-                    <div key={status} className="flex items-center justify-between">
-                      <span className={`text-sm px-2 py-1 rounded ${getRepaymentStatusClasses(status)}`}>
-                        {displayLabel}
-                      </span>
-                      <span className="text-foreground text-sm font-medium">
-                        {data.count} 筆
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
             {/* 按居住地統計 */}
-            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6 md:col-span-2 lg:col-span-4">
+            <div className="bg-dark-300 border border-dark-200 rounded-lg p-6">
               <p className="text-foreground-muted text-sm mb-4">按居住地統計</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {Object.entries(stats.by_region).map(([region, count]) => (
