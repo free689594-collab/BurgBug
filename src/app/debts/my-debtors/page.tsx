@@ -357,9 +357,9 @@ export default function MyDebtorsPage() {
                 <span className="text-xs" title="篩選是否已填寫私密欄位">🔒</span>
               </label>
               <select
-                value={privateFieldFilter || ''}
+                value={privateFieldFilter}
                 onChange={(e) => {
-                  setPrivateFieldFilter(e.target.value as 'all' | 'filled' | 'empty' | null)
+                  setPrivateFieldFilter(e.target.value)
                   setCurrentPage(1)
                 }}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -374,7 +374,7 @@ export default function MyDebtorsPage() {
                 onClick={() => {
                   setStatusFilter('')
                   setResidenceFilter('')
-                  setPrivateFieldFilter(null)
+                  setPrivateFieldFilter('')
                   setCurrentPage(1)
                 }}
                 className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
