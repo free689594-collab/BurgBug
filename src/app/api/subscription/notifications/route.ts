@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { successResponse, errorResponse, ErrorCodes } from '@/lib/api-response'
+import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { successResponse, errorResponse, ErrorCodes } from '@/lib/api/response'
 
 /**
  * GET /api/subscription/notifications
@@ -8,9 +9,23 @@ import { successResponse, errorResponse, ErrorCodes } from '@/lib/api-response'
  */
 export async function GET(request: NextRequest) {
   try {
-    // 1. 驗證使用者身份
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 1. 驗證 token
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.UNAUTHORIZED, '未提供認證令牌'),
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+
+    // 2. 驗證使用者身份
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
       return NextResponse.json(
@@ -19,14 +34,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 2. 取得查詢參數
+    // 3. 取得查詢參數
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
     const notificationType = searchParams.get('type') // 'expiry_7days', 'expiry_3days', 'expiry_1day', 'expired'
 
-    // 3. 查詢會員的通知歷史記錄
-    let query = supabase
+    // 4. 查詢會員的通知歷史記錄
+    let query = supabaseAdmin
       .from('subscription_notifications')
       .select(`
         id,
@@ -64,8 +79,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. 查詢總數（用於分頁）
-    let countQuery = supabase
+    // 5. 查詢總數（用於分頁）
+    let countQuery = supabaseAdmin
       .from('subscription_notifications')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
@@ -80,7 +95,7 @@ export async function GET(request: NextRequest) {
       console.error('查詢通知總數失敗:', countError)
     }
 
-    // 5. 返回結果
+    // 6. 返回結果
     return NextResponse.json(
       successResponse({
         notifications: notifications || [],

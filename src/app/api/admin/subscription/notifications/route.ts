@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { verifyAdminRole } from '@/lib/auth/verify-role'
-import { successResponse, errorResponse, ErrorCodes } from '@/lib/api-response'
+import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { successResponse, errorResponse, ErrorCodes } from '@/lib/api/response'
 
 /**
  * GET /api/admin/subscription/notifications
@@ -9,25 +9,53 @@ import { successResponse, errorResponse, ErrorCodes } from '@/lib/api-response'
  */
 export async function GET(request: NextRequest) {
   try {
-    // 1. 驗證管理員權限
-    const supabase = await createClient()
-    const adminCheck = await verifyAdminRole(supabase)
-    
-    if (!adminCheck.isValid) {
+    // 1. 驗證 token
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        errorResponse(ErrorCodes.UNAUTHORIZED, adminCheck.error || '未授權訪問'),
+        errorResponse(ErrorCodes.UNAUTHORIZED, '未提供認證令牌'),
         { status: 401 }
       )
     }
 
-    // 2. 取得查詢參數
+    const token = authHeader.replace('Bearer ', '')
+
+    // 2. 驗證使用者身份
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.UNAUTHORIZED, '無效的認證令牌'),
+        { status: 401 }
+      )
+    }
+
+    // 3. 檢查管理員權限
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (roleError || !userRole || !['admin', 'super_admin'].includes(userRole.role)) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.FORBIDDEN, '無權限訪問'),
+        { status: 403 }
+      )
+    }
+
+    // 4. 取得查詢參數
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
     const notificationType = searchParams.get('type') // 'expiry_7days', 'expiry_3days', 'expiry_1day', 'expired'
 
-    // 3. 查詢通知統計
-    const { data: stats, error: statsError } = await supabase.rpc('get_notification_stats')
+    // 5. 查詢通知統計
+    const { data: stats, error: statsError } = await supabaseAdmin.rpc('get_notification_stats')
 
     if (statsError) {
       console.error('查詢通知統計失敗:', statsError)
@@ -37,8 +65,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 4. 查詢通知歷史記錄
-    let query = supabase
+    // 6. 查詢通知歷史記錄
+    let query = supabaseAdmin
       .from('subscription_notifications')
       .select(`
         id,
@@ -69,14 +97,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 5. 查詢 pg_cron 排程狀態
-    const { data: cronJobs, error: cronError } = await supabase.rpc('get_cron_jobs')
+    // 7. 查詢 pg_cron 排程狀態
+    const { data: cronJobs, error: cronError } = await supabaseAdmin.rpc('get_cron_jobs')
 
     if (cronError) {
       console.error('查詢排程任務失敗:', cronError)
     }
 
-    // 6. 返回結果
+    // 8. 返回結果
     return NextResponse.json(
       successResponse({
         stats: stats || {
@@ -115,18 +143,46 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. 驗證管理員權限
-    const supabase = await createClient()
-    const adminCheck = await verifyAdminRole(supabase)
-    
-    if (!adminCheck.isValid) {
+    // 1. 驗證 token
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        errorResponse(ErrorCodes.UNAUTHORIZED, adminCheck.error || '未授權訪問'),
+        errorResponse(ErrorCodes.UNAUTHORIZED, '未提供認證令牌'),
         { status: 401 }
       )
     }
 
-    // 2. 解析請求參數
+    const token = authHeader.replace('Bearer ', '')
+
+    // 2. 驗證使用者身份
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.UNAUTHORIZED, '無效的認證令牌'),
+        { status: 401 }
+      )
+    }
+
+    // 3. 檢查管理員權限
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (roleError || !userRole || !['admin', 'super_admin'].includes(userRole.role)) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.FORBIDDEN, '無權限訪問'),
+        { status: 403 }
+      )
+    }
+
+    // 4. 解析請求參數
     const body = await request.json()
     const { action } = body // 'send_notifications' 或 'send_expired_notifications'
 
@@ -137,19 +193,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. 執行對應的函數
+    // 5. 執行對應的函數
     let result
     if (action === 'send_notifications') {
-      const { data, error } = await supabase.rpc('send_subscription_notifications')
+      const { data, error } = await supabaseAdmin.rpc('send_subscription_notifications')
       if (error) throw error
       result = data
     } else {
-      const { data, error } = await supabase.rpc('send_expired_subscription_notifications')
+      const { data, error } = await supabaseAdmin.rpc('send_expired_subscription_notifications')
       if (error) throw error
       result = data
     }
 
-    // 4. 返回結果
+    // 6. 返回結果
     return NextResponse.json(
       successResponse({
         action,
