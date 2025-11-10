@@ -79,7 +79,14 @@ export async function POST(request: NextRequest) {
         p_extend_days: extend_days,
         p_admin_note: admin_note || null
       })
-      .single()
+      .single<{
+        success: boolean
+        message: string
+        subscription_id?: string
+        old_end_date?: string
+        new_end_date?: string
+        extended_days?: number
+      }>()
 
     if (error) {
       console.error('延長訂閱失敗:', error)
@@ -94,11 +101,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. 檢查執行結果
-    if (!data.success) {
+    if (!data || !data.success) {
       return NextResponse.json(
         errorResponse(
           ErrorCodes.BUSINESS_ERROR,
-          data.message || '延長訂閱失敗'
+          data?.message || '延長訂閱失敗'
         ),
         { status: 400 }
       )

@@ -87,7 +87,13 @@ export async function PATCH(request: NextRequest) {
         p_new_status: new_status,
         p_admin_note: admin_note || null
       })
-      .single()
+      .single<{
+        success: boolean
+        message: string
+        subscription_id?: string
+        old_status?: string
+        new_status?: string
+      }>()
 
     if (error) {
       console.error('更新訂閱狀態失敗:', error)
@@ -102,11 +108,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 5. 檢查執行結果
-    if (!data.success) {
+    if (!data || !data.success) {
       return NextResponse.json(
         errorResponse(
           ErrorCodes.BUSINESS_ERROR,
-          data.message || '更新訂閱狀態失敗'
+          data?.message || '更新訂閱狀態失敗'
         ),
         { status: 400 }
       )

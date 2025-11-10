@@ -17,6 +17,7 @@ interface ExpiringSubscription {
   account: string
   nickname: string
   plan_name: string
+  subscription_type: 'free_trial' | 'paid'
   status: string
   end_date: string
   days_remaining: number
