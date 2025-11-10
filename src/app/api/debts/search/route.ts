@@ -106,25 +106,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 6. 檢查每日查詢配額（初始 20 次/天）
+    // 6. 檢查查詢額度（從訂閱系統）
     const today = new Date().toISOString().split('T')[0]
 
-    // 根據 usage_counters 計算今日成功查詢次數（失敗查詢不計）
-    let usedQueries = 0
-    {
-      const { data: quota } = await supabaseAdmin
-        .from('usage_counters')
-        .select('queries')
-        .eq('user_id', user.id)
-        .eq('day', today)
-        .maybeSingle()
-      usedQueries = quota?.queries || 0
-    }
-
-    const dailyLimit = 20 // TODO: 從會員設定中讀取
-
     // 6.1 檢查是否已查詢過相同資料（當日）
-    const searchKey = `${firstLetter}${last5}${residence || ''}`
     const { data: existingSearch } = await supabaseAdmin
       .from('activity_point_history')
       .select('id')
@@ -138,14 +123,32 @@ export async function GET(req: NextRequest) {
     const isRepeatQuery = !!existingSearch
 
     // 如果不是重複查詢，才檢查配額
-    if (!isRepeatQuery && usedQueries >= dailyLimit) {
-      return NextResponse.json(
-        errorResponse(
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          `您今日的查詢次數已達上限（${dailyLimit} 次），請明天再試`
-        ),
-        { status: 429 }
-      )
+    if (!isRepeatQuery) {
+      const { data: quotaCheck, error: quotaError } = await supabaseAdmin
+        .rpc('check_usage_quota', {
+          p_user_id: user.id,
+          p_action_type: 'query'
+        })
+        .single()
+
+      if (quotaError) {
+        console.error('檢查額度失敗:', quotaError)
+        return NextResponse.json(
+          errorResponse(ErrorCodes.INTERNAL_ERROR, '檢查額度失敗，請稍後再試'),
+          { status: 500 }
+        )
+      }
+
+      // 檢查是否有剩餘額度
+      if (!quotaCheck.has_quota) {
+        return NextResponse.json(
+          errorResponse(
+            ErrorCodes.FORBIDDEN,
+            `查詢額度已用完。${quotaCheck.quota_type === 'daily' ? '每日' : '總共'}額度：${quotaCheck.quota_limit} 次，已使用：${quotaCheck.quota_limit - quotaCheck.remaining} 次`
+          ),
+          { status: 403 }
+        )
+      }
     }
 
     // 7. 查詢債務記錄（使用遮罩視圖）
@@ -340,9 +343,28 @@ export async function GET(req: NextRequest) {
       // 不阻塞主流程
     }
 
-    // 13. 新增活躍度點數（優化：直接呼叫資料庫函數）
-    let activityResult = null
+    // 13. 扣除查詢額度（如果不是重複查詢）
+    let remainingQueries = 0
     const hasResults = resultsWithUploaders && resultsWithUploaders.length > 0
+
+    if (hasResults && !isRepeatQuery) {
+      const { data: deductResult, error: deductError } = await supabaseAdmin
+        .rpc('deduct_usage_quota', {
+          p_user_id: user.id,
+          p_action_type: 'query'
+        })
+        .single()
+
+      if (deductError || !deductResult?.success) {
+        console.error('扣除額度失敗:', deductError)
+        // 不阻塞主流程，但記錄錯誤
+      } else {
+        remainingQueries = deductResult.remaining
+      }
+    }
+
+    // 14. 新增活躍度點數（優化：直接呼叫資料庫函數）
+    let activityResult = null
 
     if (hasResults && !isRepeatQuery) {
       try {
@@ -368,7 +390,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 14. 返回查詢結果
+    // 15. 返回查詢結果
     return NextResponse.json(
       successResponse(
         {
@@ -381,7 +403,7 @@ export async function GET(req: NextRequest) {
             residence: residence || null
           },
           // 修正：重複查詢不扣點，所以剩餘次數計算要考慮是否重複
-          remaining_searches: dailyLimit - usedQueries - (hasResults && !isRepeatQuery ? 1 : 0),
+          remaining_searches: remainingQueries,
           is_repeat_query: isRepeatQuery,
           // 活躍度點數資訊
           activity: activityResult,

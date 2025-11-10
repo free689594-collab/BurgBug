@@ -37,6 +37,14 @@ interface MemberInfo {
   badges?: string[]       // 勳章列表
 }
 
+// 訂閱狀態介面
+interface SubscriptionStatus {
+  subscription_type: 'free_trial' | 'vip_monthly'
+  is_active: boolean
+  days_remaining: number
+  end_date: string
+}
+
 export default function MemberNav({ className = '' }: MemberNavProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -45,14 +53,17 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
   const [loading, setLoading] = useState(true)
   const [messagesDropdownOpen, setMessagesDropdownOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
 
   useEffect(() => {
     fetchMemberInfo()
     fetchUnreadCount()
+    fetchSubscriptionStatus()
 
     // 監聽使用者資料更新事件
     const handleUserDataUpdated = () => {
       fetchMemberInfo()
+      fetchSubscriptionStatus()
     }
 
     // 監聽訊息更新事件
@@ -119,6 +130,28 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
     }
   }
 
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const token = localStorage.getItem('access_token')
+      if (!token) return
+
+      const res = await fetch('/api/subscription/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          setSubscriptionStatus(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription status:', error)
+    }
+  }
+
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('access_token')
@@ -148,6 +181,7 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
     { name: '債務上傳', path: '/debts/upload', icon: '📤' },
     { name: '債務查詢', path: '/debts/search', icon: '🔍' },
     { name: '我的債務人', path: '/debts/my-debtors', icon: '📋' },
+    { name: '訂閱管理', path: '/subscription', icon: '💰' },
   ]
 
   const messagesItems = [
@@ -169,7 +203,42 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
     }
   }
 
+  // 訂閱狀態顯示
+  const getSubscriptionDisplay = () => {
+    if (!subscriptionStatus) return null
+
+    const { subscription_type, days_remaining } = subscriptionStatus
+    const isVIP = subscription_type === 'vip_monthly'
+
+    // 剩餘天數顏色
+    let daysColor = 'text-white'
+    if (days_remaining <= 3) {
+      daysColor = 'text-red-400'
+    } else if (days_remaining <= 7) {
+      daysColor = 'text-yellow-400'
+    }
+
+    if (isVIP) {
+      return {
+        label: 'V.I.P',
+        icon: '👑',
+        daysText: `(權限剩 ${days_remaining} 天)`,
+        badgeClass: 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white',
+        daysColor
+      }
+    } else {
+      return {
+        label: '免費體驗',
+        icon: '',
+        daysText: `(體驗剩 ${days_remaining} 天)`,
+        badgeClass: 'bg-gray-600 text-white',
+        daysColor
+      }
+    }
+  }
+
   const statusDisplay = member ? getStatusDisplay(member.status) : null
+  const subscriptionDisplay = getSubscriptionDisplay()
 
   return (
     <nav className={`bg-dark-300 border-b border-dark-200 ${className}`}>
@@ -256,64 +325,70 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
             {/* 桌面版會員資訊 */}
             <div className="hidden md:flex md:items-center md:space-x-4">
               {member && !loading && (
-                <>
-                  {/* 等級徽章 */}
-                  {member.level_info && (
-                    <button
-                      onClick={() => router.push('/profile')}
-                      className="transition-transform hover:scale-105"
-                      title="查看個人資料"
-                    >
-                      <LevelBadge
-                        level={member.level_info.current_level}
-                        title={member.level_info.title}
-                        titleColor={member.level_info.title_color}
-                        size="small"
-                      />
-                    </button>
-                  )}
+                <div className="flex flex-col gap-1.5">
+                  {/* 第一行：等級徽章 + 會員暱稱 + 訂閱狀態 */}
+                  <div className="flex items-center gap-2">
+                    {/* 等級徽章 */}
+                    {member.level_info && (
+                      <button
+                        onClick={() => router.push('/profile')}
+                        className="transition-transform hover:scale-105"
+                        title="查看個人資料"
+                      >
+                        <LevelBadge
+                          level={member.level_info.current_level}
+                          title={member.level_info.title}
+                          titleColor={member.level_info.title_color}
+                          size="small"
+                        />
+                      </button>
+                    )}
 
-                  {/* 活躍度點數 */}
-                  {member.level_info && (
-                    <div className="flex items-center space-x-1 px-2 py-1 bg-dark-200 rounded-md">
-                      <TrendingUp className="w-3 h-3" style={{ color: member.level_info.title_color }} />
-                      <span className="text-xs font-medium" style={{ color: member.level_info.title_color }}>
-                        {member.level_info.activity_points}
-                      </span>
-                    </div>
-                  )}
+                    {/* 會員暱稱 */}
+                    <span className="text-sm text-foreground font-medium">{member.nickname || member.account}</span>
 
-                  {/* 配額顯示（與 /profile 頁面保持一致）*/}
-                  <div className="flex items-center space-x-3 px-3 py-1 bg-dark-200 rounded-md">
-                    <div className="text-xs">
-                      <div className="text-foreground-muted">上傳</div>
-                      <div className="text-foreground font-medium">
-                        {(member.quota?.remaining_uploads ?? member.quota?.uploads_remaining ?? 0)}/{member.quota?.daily_upload_limit ?? 10}
-                      </div>
-                    </div>
-                    <div className="h-8 w-px bg-dark-100"></div>
-                    <div className="text-xs">
-                      <div className="text-foreground-muted">查詢</div>
-                      <div className="text-foreground font-medium">
-                        {(member.quota?.remaining_queries ?? member.quota?.queries_remaining ?? 0)}/{member.quota?.daily_query_limit ?? 20}
-                      </div>
-                    </div>
+                    {/* 訂閱狀態標籤 */}
+                    {subscriptionDisplay && (
+                      <>
+                        <span className="text-foreground-muted text-sm">|</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${subscriptionDisplay.badgeClass}`}>
+                          {subscriptionDisplay.icon && <span className="mr-1">{subscriptionDisplay.icon}</span>}
+                          {subscriptionDisplay.label}
+                        </span>
+                        <span className={`text-xs font-medium ${subscriptionDisplay.daysColor}`}>
+                          {subscriptionDisplay.daysText}
+                        </span>
+                      </>
+                    )}
                   </div>
 
-                  {/* 會員資訊 */}
-                  <div className="text-sm">
-                    <div className="text-foreground font-medium flex items-center space-x-2">
-                      <span>{member.nickname || member.account}</span>
-                    </div>
-                    <div className="text-foreground-muted text-xs flex items-center space-x-2 flex-wrap">
-                      <span>{member.business_type || '未設定'}</span>
-                      <span>·</span>
-                      <span>{member.business_region || '未設定'}</span>
-                      <span>·</span>
-                      <span className={statusDisplay?.color}>{statusDisplay?.text}</span>
-                    </div>
+                  {/* 第二行：活躍度 + 業務資訊 + 額度顯示 */}
+                  <div className="flex items-center gap-2 text-xs text-foreground-muted">
+                    {/* 活躍度點數 */}
+                    {member.level_info && (
+                      <div className="flex items-center space-x-0.5 px-1.5 py-0.5 bg-dark-200 rounded">
+                        <TrendingUp className="w-2.5 h-2.5" style={{ color: member.level_info.title_color }} />
+                        <span className="text-[10px] font-medium" style={{ color: member.level_info.title_color }}>
+                          {member.level_info.activity_points}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 業務資訊 */}
+                    <span>{member.business_type || '未設定'}</span>
+                    <span>·</span>
+                    <span>{member.business_region || '未設定'}</span>
+                    <span>·</span>
+
+                    {/* 額度顯示（內嵌文字版）*/}
+                    <span className="text-foreground">
+                      上傳{(member.quota?.remaining_uploads ?? member.quota?.uploads_remaining ?? 0)}/{member.quota?.daily_upload_limit ?? 10}
+                    </span>
+                    <span className="text-foreground">
+                      查詢{(member.quota?.remaining_queries ?? member.quota?.queries_remaining ?? 0)}/{member.quota?.daily_query_limit ?? 20}
+                    </span>
                   </div>
-                </>
+                </div>
               )}
 
               {/* 管理後台按鈕（僅管理員顯示） */}
@@ -451,6 +526,18 @@ export default function MemberNav({ className = '' }: MemberNavProps) {
                     <TrendingUp className="w-3 h-3" style={{ color: member.level_info.title_color }} />
                     <span className="text-xs font-medium" style={{ color: member.level_info.title_color }}>
                       活躍度：{member.level_info.activity_points} 點
+                    </span>
+                  </div>
+                )}
+                {/* 訂閱狀態（手機版）*/}
+                {subscriptionDisplay && (
+                  <div className="mt-2 flex items-center space-x-2">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${subscriptionDisplay.badgeClass}`}>
+                      {subscriptionDisplay.icon && <span className="mr-1">{subscriptionDisplay.icon}</span>}
+                      {subscriptionDisplay.label}
+                    </span>
+                    <span className={`text-xs ${subscriptionDisplay.daysColor}`}>
+                      {subscriptionDisplay.daysText}
                     </span>
                   </div>
                 )}

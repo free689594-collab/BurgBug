@@ -6,17 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:build": "npm run lint && npm run build",
+    "test:local": "npm run build && npm run start",
+    "check": "npm run lint && tsc --noEmit"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "@supabase/supabase-js": "^2.39.0",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.545.0",
     "next": "^15.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^3.2.1"
+    "recharts": "^3.3.0",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

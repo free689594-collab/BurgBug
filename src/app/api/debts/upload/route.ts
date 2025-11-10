@@ -187,23 +187,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 6. 檢查每日上傳配額（初始 10 次/天）
-    const today = new Date().toISOString().split('T')[0]
-    const { count: todayUploadCount } = await supabaseAdmin
-      .from('debt_records')
-      .select('*', { count: 'exact', head: true })
-      .eq('uploaded_by', user.id)
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lt('created_at', `${today}T23:59:59Z`)
+    // 6. 檢查上傳額度（從訂閱系統）
+    const { data: quotaCheck, error: quotaError } = await supabaseAdmin
+      .rpc('check_usage_quota', {
+        p_user_id: user.id,
+        p_action_type: 'upload'
+      })
+      .single()
 
-    const dailyLimit = 10 // TODO: 從會員設定中讀取
-    if ((todayUploadCount || 0) >= dailyLimit) {
+    if (quotaError) {
+      console.error('檢查額度失敗:', quotaError)
+      return NextResponse.json(
+        errorResponse(ErrorCodes.INTERNAL_ERROR, '檢查額度失敗，請稍後再試'),
+        { status: 500 }
+      )
+    }
+
+    // 檢查是否有剩餘額度
+    if (!quotaCheck.has_quota) {
       return NextResponse.json(
         errorResponse(
-          ErrorCodes.RATE_LIMIT_EXCEEDED,
-          `您今日的上傳次數已達上限（${dailyLimit} 次），請明天再試`
+          ErrorCodes.FORBIDDEN,
+          `上傳額度已用完。${quotaCheck.quota_type === 'daily' ? '每日' : '總共'}額度：${quotaCheck.quota_limit} 次，已使用：${quotaCheck.quota_limit - quotaCheck.remaining} 次`
         ),
-        { status: 429 }
+        { status: 403 }
       )
     }
 
@@ -239,7 +246,20 @@ export async function POST(req: NextRequest) {
       total_points: uploadResult.total_points
     }
 
-    // 8. 記錄審計日誌
+    // 8. 扣除上傳額度
+    const { data: deductResult, error: deductError } = await supabaseAdmin
+      .rpc('deduct_usage_quota', {
+        p_user_id: user.id,
+        p_action_type: 'upload'
+      })
+      .single()
+
+    if (deductError || !deductResult?.success) {
+      console.error('扣除額度失敗:', deductError)
+      // 不阻塞主流程，但記錄錯誤
+    }
+
+    // 9. 記錄審計日誌
     try {
       await supabaseAdmin.rpc('log_audit', {
         p_action: 'DEBT_UPLOAD',
@@ -274,7 +294,7 @@ export async function POST(req: NextRequest) {
             debtor_id_first_letter: debtRecord?.debtor_id_first_letter || body.debtor_id_full.charAt(0),
             created_at: new Date().toISOString()
           },
-          remaining_uploads: dailyLimit - (todayUploadCount || 0) - 1,
+          remaining_uploads: deductResult?.remaining || 0,
           message: '債務記錄上傳成功！',
           // 活躍度點數資訊
           activity: activityResult

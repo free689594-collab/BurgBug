@@ -7,6 +7,7 @@ import StatCard from '@/components/stats/StatCard'
 import RegionStatsCard from '@/components/stats/RegionStatsCard'
 import { LevelBadge } from '@/components/member/LevelBadge'
 import { ActivityProgress } from '@/components/member/ActivityProgress'
+import { ExpiryReminder } from '@/components/subscription/ExpiryReminder'
 import { TrendingUp, Award } from 'lucide-react'
 
 interface User {
@@ -64,6 +65,12 @@ interface RegionStats {
   east: number
 }
 
+interface SubscriptionInfo {
+  subscription_type: 'trial' | 'vip'
+  end_date: string
+  days_remaining: number
+}
+
 
 
 export default function DashboardPage() {
@@ -71,6 +78,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [memberStats, setMemberStats] = useState<MemberStats | null>(null)
   const [regionStats, setRegionStats] = useState<RegionStats | null>(null)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -83,7 +91,7 @@ export default function DashboardPage() {
       }
 
       // 並行取得所有資料
-      const [userRes, memberStatsRes, regionStatsRes] = await Promise.all([
+      const [userRes, memberStatsRes, regionStatsRes, subscriptionRes] = await Promise.all([
         fetch('/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
@@ -91,6 +99,9 @@ export default function DashboardPage() {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
         fetch('/api/region/stats', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
+        fetch('/api/subscription/status', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ])
@@ -114,6 +125,11 @@ export default function DashboardPage() {
       if (regionStatsRes.ok) {
         const regionStatsData = await regionStatsRes.json()
         setRegionStats(regionStatsData.data)
+      }
+
+      if (subscriptionRes.ok) {
+        const subscriptionData = await subscriptionRes.json()
+        setSubscriptionInfo(subscriptionData.data)
       }
 
       setLoading(false)
@@ -161,6 +177,15 @@ export default function DashboardPage() {
   return (
     <MemberLayout>
       <div className="space-y-8">
+
+        {/* 訂閱到期提醒 */}
+        {subscriptionInfo && (
+          <ExpiryReminder
+            daysRemaining={subscriptionInfo.days_remaining}
+            subscriptionType={subscriptionInfo.subscription_type}
+            expiryDate={subscriptionInfo.end_date}
+          />
+        )}
 
         {/* 站內債務總累計 - 顯眼位置 */}
         {regionStats && (

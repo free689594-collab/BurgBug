@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   '/account-suspended',
   '/session-expired',
   '/session-conflict',
+  '/subscription-expired',  // 訂閱過期頁面
   '/test-cookie',   // Cookie 測試頁面
   '/api/auth/login',
   '/api/auth/register',
@@ -25,6 +26,17 @@ const PUBLIC_PATHS = [
   '/api/test-cookie',
   '/api/health',
   '/api/debug',
+]
+
+/**
+ * 訂閱豁免路徑（即使訂閱過期也可以訪問）
+ */
+const SUBSCRIPTION_EXEMPT_PATHS = [
+  '/subscription-expired',
+  '/profile',
+  '/api/subscription',
+  '/api/auth/me',
+  '/api/auth/logout',
 ]
 
 /**
@@ -39,6 +51,13 @@ function isAdminRoute(pathname: string): boolean {
  */
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'))
+}
+
+/**
+ * 判斷路徑是否豁免訂閱檢查
+ */
+function isSubscriptionExempt(pathname: string): boolean {
+  return SUBSCRIPTION_EXEMPT_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'))
 }
 
 /**
@@ -203,6 +222,41 @@ async function validateSession(userId: string, sessionId: string): Promise<boole
 }
 
 /**
+ * 檢查訂閱狀態
+ * 返回訂閱是否有效
+ */
+async function checkSubscriptionStatus(userId: string): Promise<boolean> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+
+    const { data: subscriptionStatus, error } = await supabase
+      .rpc('check_subscription_status', { p_user_id: userId })
+      .single()
+
+    if (error) {
+      console.error('[checkSubscriptionStatus] 查詢訂閱狀態失敗:', error)
+      // 查詢失敗時，為了不影響用戶體驗，暫時放行
+      return true
+    }
+
+    // 檢查訂閱是否有效（未過期）
+    return subscriptionStatus?.is_active === true
+
+  } catch (error) {
+    console.error('[checkSubscriptionStatus] 錯誤:', error)
+    // 發生錯誤時，為了不影響用戶體驗，暫時放行
+    return true
+  }
+}
+
+/**
  * Next.js 全域中間件
  * 處理認證和權限檢查
  */
@@ -303,7 +357,20 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/account-suspended', req.url))
     }
   } else if (user.status === 'approved') {
-    // 已審核會員可以正常存取
+    // 9. 訂閱狀態檢查（僅對已審核會員）
+    // 如果路徑不在豁免清單中，檢查訂閱狀態
+    if (!isSubscriptionExempt(pathname)) {
+      const hasValidSubscription = await checkSubscriptionStatus(user.id)
+
+      if (!hasValidSubscription) {
+        console.log(`[Middleware] 訂閱已過期，導向訂閱過期頁面: user_id=${user.id}, pathname=${pathname}`)
+        const expiredUrl = new URL('/subscription-expired', req.url)
+        expiredUrl.searchParams.set('from', pathname)
+        return NextResponse.redirect(expiredUrl)
+      }
+    }
+
+    // 已審核會員且訂閱有效，可以正常存取
     return NextResponse.next()
   } else {
     // 未知狀態：開發模式放行以便除錯，生產模式導回登入

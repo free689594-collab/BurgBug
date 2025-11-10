@@ -13,6 +13,7 @@ export default function AdminNav({ className = '' }: AdminNavProps) {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [subscriptionDropdownOpen, setSubscriptionDropdownOpen] = useState(false)
   const [messagesDropdownOpen, setMessagesDropdownOpen] = useState(false)
   const [systemDropdownOpen, setSystemDropdownOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -117,6 +118,11 @@ export default function AdminNav({ className = '' }: AdminNavProps) {
     { name: '債務管理', path: '/admin/debts', icon: '📋' },
   ]
 
+  const subscriptionItems = [
+    { name: '訂閱管理', path: '/admin/subscription-management', icon: '💳' },
+    { name: '報表分析', path: '/admin/analytics', icon: '📈' },
+  ]
+
   const messagesItems = [
     { name: '收件箱', path: '/admin/messages/inbox', icon: '📥' },
     { name: '發送訊息', path: '/admin/messages/send', icon: '📤' },
@@ -159,6 +165,44 @@ export default function AdminNav({ className = '' }: AdminNavProps) {
                   </button>
                 )
               })}
+
+              {/* 訂閱管理下拉選單 */}
+              <div className="relative">
+                <button
+                  onClick={() => setSubscriptionDropdownOpen(!subscriptionDropdownOpen)}
+                  className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    pathname.startsWith('/admin/subscription-management') ||
+                    pathname.startsWith('/admin/analytics')
+                      ? 'bg-dark-200 text-primary'
+                      : 'text-foreground-muted hover:bg-dark-200 hover:text-foreground'
+                  }`}
+                >
+                  <span className="mr-2">💰</span>
+                  訂閱管理
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </button>
+                {subscriptionDropdownOpen && (
+                  <div className="absolute left-0 mt-2 w-48 bg-dark-300 border border-dark-200 rounded-md shadow-lg z-50">
+                    {subscriptionItems.map((item) => (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          router.push(item.path)
+                          setSubscriptionDropdownOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center transition-colors ${
+                          pathname === item.path
+                            ? 'bg-dark-200 text-primary'
+                            : 'text-foreground-muted hover:bg-dark-200 hover:text-foreground'
+                        }`}
+                      >
+                        <span className="mr-2">{item.icon}</span>
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* 站內信下拉選單 */}
               <div className="relative">
@@ -331,6 +375,34 @@ export default function AdminNav({ className = '' }: AdminNavProps) {
                 </button>
               )
             })}
+
+            {/* 訂閱管理區塊 */}
+            <div className="pt-2">
+              <div className="px-3 py-2 text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center">
+                <span className="mr-2">💰</span>
+                訂閱管理
+              </div>
+              {subscriptionItems.map((item) => {
+                const isActive = pathname === item.path
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      router.push(item.path)
+                      setIsMenuOpen(false)
+                    }}
+                    className={`w-full text-left flex items-center px-6 py-2 text-base font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-dark-200 text-primary'
+                        : 'text-foreground-muted hover:bg-dark-200 hover:text-foreground'
+                    }`}
+                  >
+                    <span className="mr-2">{item.icon}</span>
+                    {item.name}
+                  </button>
+                )
+              })}
+            </div>
 
             {/* 站內信區塊 */}
             <div className="pt-2">

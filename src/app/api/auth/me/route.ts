@@ -62,24 +62,46 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    // 6. 取得今日配額使用情況
-    const today = new Date().toISOString().split('T')[0]
-    const { data: quotaData } = await supabaseAdmin
-      .from('usage_counters')
-      .select('uploads, queries')
-      .eq('user_id', user.id)
-      .eq('day', today)
+    // 6. 查詢訂閱狀態
+    const { data: subscriptionStatus, error: subError } = await supabaseAdmin
+      .rpc('check_subscription_status', { p_user_id: user.id })
       .single()
 
-    // 7. 計算配額（包含等級獎勵）
-    const baseUploadLimit = 10
-    const baseQueryLimit = 20
+    if (subError) {
+      console.error('查詢訂閱狀態失敗:', subError)
+    }
+
+    // 7. 查詢上傳額度
+    const { data: uploadQuota } = await supabaseAdmin
+      .rpc('check_usage_quota', {
+        p_user_id: user.id,
+        p_action_type: 'upload'
+      })
+      .single()
+
+    // 8. 查詢查詢額度
+    const { data: queryQuota } = await supabaseAdmin
+      .rpc('check_usage_quota', {
+        p_user_id: user.id,
+        p_action_type: 'query'
+      })
+      .single()
+
+    // 9. 從訂閱系統獲取額度資訊
+    const uploadLimit = uploadQuota?.limit_value || 10
+    const queryLimit = queryQuota?.limit_value || 10
+    const uploadRemaining = uploadQuota?.remaining || 0
+    const queryRemaining = queryQuota?.remaining || 0
+    const uploadUsed = uploadLimit - uploadRemaining
+    const queryUsed = queryLimit - queryRemaining
+
+    // 10. 加上等級獎勵
     const uploadBonus = stats?.total_upload_quota_bonus || 0
     const queryBonus = stats?.total_query_quota_bonus || 0
-    const dailyUploadLimit = baseUploadLimit + uploadBonus
-    const dailyQueryLimit = baseQueryLimit + queryBonus
+    const totalUploadLimit = uploadLimit + uploadBonus
+    const totalQueryLimit = queryLimit + queryBonus
 
-    // 8. 回傳使用者資訊
+    // 11. 回傳使用者資訊
     return NextResponse.json(
       successResponse({
         id: user.id,
@@ -104,17 +126,27 @@ export async function GET(req: NextRequest) {
           uploads_count: stats?.uploads_count || 0,
           queries_count: stats?.queries_count || 0,
         },
+        // 訂閱資訊
+        subscription: subscriptionStatus ? {
+          status: subscriptionStatus.status,
+          is_vip: subscriptionStatus.is_vip,
+          end_date: subscriptionStatus.end_date,
+          days_remaining: subscriptionStatus.days_remaining,
+          is_expired: subscriptionStatus.is_expired,
+        } : null,
+        // 額度資訊（從訂閱系統獲取）
         quota: {
-          uploads_today: quotaData?.uploads || 0,
-          queries_today: quotaData?.queries || 0,
-          // 使用與 /profile 頁面相同的欄位名稱
-          remaining_uploads: Math.max(0, dailyUploadLimit - (quotaData?.uploads || 0)),
-          remaining_queries: Math.max(0, dailyQueryLimit - (quotaData?.queries || 0)),
+          uploads_used: uploadUsed,
+          queries_used: queryUsed,
+          uploads_remaining: Math.max(0, totalUploadLimit - uploadUsed),
+          queries_remaining: Math.max(0, totalQueryLimit - queryUsed),
+          upload_limit: totalUploadLimit,
+          query_limit: totalQueryLimit,
           // 保留舊的欄位名稱以保持向後相容
-          uploads_remaining: Math.max(0, dailyUploadLimit - (quotaData?.uploads || 0)),
-          queries_remaining: Math.max(0, dailyQueryLimit - (quotaData?.queries || 0)),
-          daily_upload_limit: dailyUploadLimit,
-          daily_query_limit: dailyQueryLimit,
+          remaining_uploads: Math.max(0, totalUploadLimit - uploadUsed),
+          remaining_queries: Math.max(0, totalQueryLimit - queryUsed),
+          daily_upload_limit: totalUploadLimit,
+          daily_query_limit: totalQueryLimit,
         }
       })
     )

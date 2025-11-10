@@ -48,18 +48,14 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    // 4. 取得今日查詢次數（計算剩餘配額）
-    const today = new Date().toISOString().split('T')[0]
-    const { count: todaySearchCount } = await supabaseAdmin
-      .from('audit_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('action', 'DEBT_SEARCH')
-      .gte('created_at', `${today}T00:00:00.000Z`)
-      .lte('created_at', `${today}T23:59:59.999Z`)
+    // 4. 從訂閱系統取得額度資訊
+    const { data: subscriptionStatus } = await supabaseAdmin
+      .rpc('check_subscription_status', { p_user_id: user.id })
+      .single()
 
-    const dailyLimit = 20 // TODO: 從會員設定中讀取
-    const remainingSearches = Math.max(0, dailyLimit - (todaySearchCount || 0))
+    const queryLimit = subscriptionStatus?.query_limit || 10
+    const queryUsed = subscriptionStatus?.query_used || 0
+    const queryRemaining = Math.max(0, queryLimit - queryUsed)
 
     // 5. 取得個人上傳排名
     const { data: uploadRanking } = await supabaseAdmin
@@ -87,10 +83,10 @@ export async function GET(req: NextRequest) {
         likes_given: stats?.likes_given || 0,
       },
       quota: {
-        daily_limit: dailyLimit,
-        used_today: todaySearchCount || 0,
-        remaining_today: remainingSearches,
-        percentage_used: dailyLimit > 0 ? ((todaySearchCount || 0) / dailyLimit * 100).toFixed(1) : '0.0',
+        daily_limit: queryLimit,
+        used_today: queryUsed,
+        remaining_today: queryRemaining,
+        percentage_used: queryLimit > 0 ? ((queryUsed / queryLimit) * 100).toFixed(1) : '0.0',
       },
       ranking: {
         upload_rank: uploadRanking?.rank || null,
