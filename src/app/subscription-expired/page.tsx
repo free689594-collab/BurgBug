@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, CreditCard, LogOut } from 'lucide-react'
 
-export default function SubscriptionExpiredPage() {
+function SubscriptionExpiredContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const from = searchParams.get('from') || '/dashboard'
@@ -95,3 +95,10 @@ export default function SubscriptionExpiredPage() {
   )
 }
 
+export default function SubscriptionExpiredPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">載入中...</div>}>
+      <SubscriptionExpiredContent />
+    </Suspense>
+  )
+}
