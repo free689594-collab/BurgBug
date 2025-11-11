@@ -44,7 +44,25 @@ export async function GET(request: NextRequest) {
     // 3. 呼叫資料庫函數查詢訂閱狀態
     const { data, error } = await supabaseAdmin
       .rpc('check_subscription_status', { p_user_id: user.id })
-      .single()
+      .single<{
+        subscription_id: string
+        plan_name: string
+        display_name: string
+        status: string
+        subscription_type: string
+        start_date: string
+        end_date: string | null
+        days_remaining: number
+        is_expired: boolean
+        is_vip: boolean
+        quota_type: string
+        upload_used: number
+        upload_limit: number
+        upload_remaining: number
+        query_used: number
+        query_limit: number
+        query_remaining: number
+      }>()
 
     if (error) {
       console.error('查詢訂閱狀態失敗:', error)
@@ -68,16 +86,16 @@ export async function GET(request: NextRequest) {
     // 4. 回傳訂閱狀態
     const result: SubscriptionStatusResult = {
       subscription_id: data.subscription_id,
-      plan_name: data.plan_name,
+      plan_name: data.plan_name as any,
       display_name: data.display_name,
-      status: data.status,
-      subscription_type: data.subscription_type,
+      status: data.status as any,
+      subscription_type: data.subscription_type as any,
       start_date: data.start_date,
-      end_date: data.end_date,
+      end_date: data.end_date || '',
       days_remaining: data.days_remaining,
       is_expired: data.is_expired,
       is_vip: data.is_vip,
-      quota_type: data.quota_type,
+      quota_type: data.quota_type as any,
       upload_used: data.upload_used,
       upload_limit: data.upload_limit,
       upload_remaining: data.upload_remaining,

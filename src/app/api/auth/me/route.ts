@@ -65,7 +65,13 @@ export async function GET(req: NextRequest) {
     // 6. 查詢訂閱狀態
     const { data: subscriptionStatus, error: subError } = await supabaseAdmin
       .rpc('check_subscription_status', { p_user_id: user.id })
-      .single()
+      .single<{
+        status: string
+        is_vip: boolean
+        end_date: string | null
+        days_remaining: number
+        is_expired: boolean
+      }>()
 
     if (subError) {
       console.error('查詢訂閱狀態失敗:', subError)
@@ -77,7 +83,7 @@ export async function GET(req: NextRequest) {
         p_user_id: user.id,
         p_action_type: 'upload'
       })
-      .single()
+      .single<{ limit_value: number; remaining: number }>()
 
     // 8. 查詢查詢額度
     const { data: queryQuota } = await supabaseAdmin
@@ -85,7 +91,7 @@ export async function GET(req: NextRequest) {
         p_user_id: user.id,
         p_action_type: 'query'
       })
-      .single()
+      .single<{ limit_value: number; remaining: number }>()
 
     // 9. 從訂閱系統獲取額度資訊
     const uploadLimit = uploadQuota?.limit_value || 10

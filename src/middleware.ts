@@ -238,7 +238,7 @@ async function checkSubscriptionStatus(userId: string): Promise<boolean> {
 
     const { data: subscriptionStatus, error } = await supabase
       .rpc('check_subscription_status', { p_user_id: userId })
-      .single()
+      .single<{ is_active: boolean }>()
 
     if (error) {
       console.error('[checkSubscriptionStatus] 查詢訂閱狀態失敗:', error)

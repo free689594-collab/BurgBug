@@ -57,7 +57,7 @@ export default function Breadcrumb({ customItems }: BreadcrumbProps) {
             <ChevronRight className="w-4 h-4" />
             {item.path ? (
               <button
-                onClick={() => router.push(item.path)}
+                onClick={() => item.path && router.push(item.path)}
                 className="hover:text-foreground transition-colors"
               >
                 {item.label}
@@ -113,7 +113,7 @@ export default function Breadcrumb({ customItems }: BreadcrumbProps) {
           <ChevronRight className="w-4 h-4" />
           {item.path ? (
             <button
-              onClick={() => router.push(item.path)}
+              onClick={() => item.path && router.push(item.path)}
               className="hover:text-foreground transition-colors"
             >
               {item.label}

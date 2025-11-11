@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
         p_user_id: user.id,
         p_action_type: action_type
       })
-      .single()
+      .single<{
+        has_quota: boolean
+        remaining: number
+        quota_limit: number
+        quota_type: 'total' | 'daily'
+      }>()
 
     if (error) {
       console.error('檢查額度失敗:', error)
@@ -72,12 +77,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!data) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.INTERNAL_ERROR, '無法取得額度資訊'),
+        { status: 500 }
+      )
+    }
+
     // 5. 解析結果
-    const hasQuota = data.has_quota as boolean
-    const remaining = data.remaining as number
-    const limit = data.quota_limit as number
+    const hasQuota = data.has_quota
+    const remaining = data.remaining
+    const limit = data.quota_limit
     const used = limit - remaining
-    const quotaType = data.quota_type as 'total' | 'daily'
+    const quotaType = data.quota_type
 
     const result: QuotaCheckResult = {
       has_quota: hasQuota,

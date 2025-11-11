@@ -58,7 +58,11 @@ export async function POST(request: NextRequest) {
         p_user_id: user.id,
         p_action_type: action_type
       })
-      .single()
+      .single<{
+        success: boolean
+        remaining: number
+        message: string
+      }>()
 
     if (error) {
       console.error('扣除額度失敗:', error)
@@ -72,10 +76,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!data) {
+      return NextResponse.json(
+        errorResponse(ErrorCodes.INTERNAL_ERROR, '無法扣除額度'),
+        { status: 500 }
+      )
+    }
+
     // 5. 解析結果
-    const success = data.success as boolean
-    const remaining = data.remaining as number
-    const message = data.message as string
+    const success = data.success
+    const remaining = data.remaining
+    const message = data.message
 
     const result: QuotaDeductResult = {
       success: success,

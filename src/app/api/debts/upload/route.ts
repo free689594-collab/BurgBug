@@ -193,7 +193,12 @@ export async function POST(req: NextRequest) {
         p_user_id: user.id,
         p_action_type: 'upload'
       })
-      .single()
+      .single<{
+        has_quota: boolean
+        quota_type: string
+        quota_limit: number
+        remaining: number
+      }>()
 
     if (quotaError) {
       console.error('檢查額度失敗:', quotaError)
@@ -204,7 +209,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 檢查是否有剩餘額度
-    if (!quotaCheck.has_quota) {
+    if (quotaCheck && !quotaCheck.has_quota) {
       return NextResponse.json(
         errorResponse(
           ErrorCodes.FORBIDDEN,
@@ -252,7 +257,7 @@ export async function POST(req: NextRequest) {
         p_user_id: user.id,
         p_action_type: 'upload'
       })
-      .single()
+      .single<{ success: boolean; remaining: number }>()
 
     if (deductError || !deductResult?.success) {
       console.error('扣除額度失敗:', deductError)

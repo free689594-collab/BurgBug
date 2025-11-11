@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     // 4. 從訂閱系統取得額度資訊
     const { data: subscriptionStatus } = await supabaseAdmin
       .rpc('check_subscription_status', { p_user_id: user.id })
-      .single()
+      .single<{ query_limit: number; query_used: number }>()
 
     const queryLimit = subscriptionStatus?.query_limit || 10
     const queryUsed = subscriptionStatus?.query_used || 0
